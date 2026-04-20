@@ -53,14 +53,39 @@
             flex-direction: column;
             gap: 1rem;
         }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(139, 92, 246, 0.2);
-            border-top: 4px solid #8b5cf6;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(139, 92, 246, 0.15);
+    border-top: 5px solid #8b5cf6;
+    border-right: 5px solid #a855f7;
+    border-bottom: 5px solid #c084fc;
+    border-radius: 50%;
+    animation: spin 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1.2rem;
+    animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
         @keyframes spin { to { transform: rotate(360deg); } }
         .toast-container {
             position: fixed;
@@ -123,13 +148,17 @@
             font-size: 0.95rem;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3); }
-        .signout-btn {
+        .signout-btn, .print-btn {
             background: #64748b;
             margin-top: 0;
             width: auto;
             padding: 0.5rem 1.2rem;
             font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
+        .print-btn { background: #2d6a4f; }
         .header-flex {
             display: flex;
             justify-content: space-between;
@@ -176,38 +205,41 @@
         }
         .search-input:focus { border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
         
-        /* Word table with custom font */
         .data-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
-            background: white;
+            background: #ffffff;
             border-radius: 1rem;
             overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
         .data-table th {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
+            background: #f1f5f9;
+            color: #1e293b;
             padding: 14px 12px;
             font-weight: 700;
             text-align: left;
             font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .data-table th:hover {
+            background: #e2e8f0;
         }
         .data-table td {
             padding: 12px 12px;
-            border-bottom: 1px solid #f0e6ff;
+            border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
+            background-color: #ffffff;
         }
-        .data-table tr:nth-child(even) {
-            background-color: #faf5ff;
+        .data-table tr:hover td {
+            background-color: #faf9ff;
+            transition: 0.1s;
         }
-        .data-table tr:hover {
-            background: linear-gradient(90deg, #fef3c7, #fff7ed);
-            cursor: pointer;
-        }
-        /* German word font */
         .german-word {
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-weight: 600;
@@ -228,10 +260,10 @@
             text-align: center;
             min-width: 48px;
         }
-        .level-A1 { background: #10b981; color: white; }
-        .level-A2 { background: #3b82f6; color: white; }
-        .level-B1 { background: #f59e0b; color: white; }
-        .level-B2 { background: #8b5cf6; color: white; }
+        .level-A1 { background: #d1fae5; color: #065f46; }
+        .level-A2 { background: #dbeafe; color: #1e40af; }
+        .level-B1 { background: #fed7aa; color: #9a3412; }
+        .level-B2 { background: #e9d5ff; color: #6b21a5; }
         .kap-badge {
             background: #e0e7ff;
             color: #4338ca;
@@ -255,8 +287,14 @@
             color: #64748b;
             font-weight: 500;
         }
-        
-        /* Modal stretched left-right */
+        .audio-icon {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            transition: transform 0.1s;
+        }
+        .audio-icon:hover { transform: scale(1.1); }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -275,7 +313,7 @@
             background: white;
             border-radius: 1.5rem;
             width: calc(100% - 0.4rem);
-            max-width: none;
+            max-width: calc(100% - 0.4rem);
             margin: 0 0.2rem;
             padding: 1.2rem;
             box-shadow: 0 25px 40px rgba(0, 0, 0, 0.2);
@@ -288,9 +326,19 @@
             margin-bottom: 1rem;
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 0.7rem;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         .close-modal {
             background: #ef4444;
+            padding: 0.3rem 1rem;
+            width: auto;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        .print-single-btn {
+            background: #2d6a4f;
             padding: 0.3rem 1rem;
             width: auto;
             border-radius: 2rem;
@@ -302,32 +350,57 @@
             border-collapse: collapse;
         }
         .modal-table th {
-            background: #4f46e5;
-            color: white;
+            background: #f1f5f9;
+            color: #1e293b;
             padding: 10px 12px;
             font-size: 0.75rem;
             text-align: left;
+            font-weight: 700;
         }
         .modal-table td {
             padding: 10px 12px;
             border: 1px solid #e2e8f0;
-            background: #fefce8;
+            background: #ffffff;
         }
         .table-wrapper {
             overflow-x: auto;
             width: 100%;
             border-radius: 1rem;
         }
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            cursor: pointer;
+        }
+        .clickable-title {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .clickable-title:hover {
+            opacity: 0.7;
+        }
+        @media print {
+            .header-flex button, .search-area, .modal-overlay, .toast-container, .back-btn, .signout-btn, .print-btn, .audio-icon, .audio-table-icon { display: none; }
+            .data-table th { background: #e9ecef !important; color: #000 !important; }
+            .results-container { max-height: none; overflow: visible; }
+            body { background: white; padding: 0; margin: 0; }
+            .glass-card { box-shadow: none; padding: 0; }
+        }
+        .print-layout table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        .print-layout th, .print-layout td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+        .print-layout .level-row td { background: #f3f4f6; font-weight: bold; }
+        .sort-indicator {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
 <svg class="bg-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 800" width="100%" height="100%">
-    <defs>
-        <linearGradient id="lightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#c084fc" stop-opacity="0.06"/>
-            <stop offset="100%" stop-color="#818cf8" stop-opacity="0.03"/>
-        </linearGradient>
-    </defs>
+    <defs><linearGradient id="lightGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c084fc" stop-opacity="0.06"/><stop offset="100%" stop-color="#818cf8" stop-opacity="0.03"/></linearGradient></defs>
     <path fill="url(#lightGrad)" d="M0,320L48,293.3C96,267,192,213,288,213.3C384,213,480,267,576,288C672,309,768,299,864,272C960,245,1056,203,1152,197.3C1248,192,1344,224,1392,240L1440,256L1440,800L1392,800C1344,800,1248,800,1152,800C1056,800,960,800,864,800C768,800,672,800,576,800C480,800,384,800,288,800C192,800,96,800,48,800L0,800Z"/>
 </svg>
 <div class="container" id="app"></div>
@@ -338,10 +411,11 @@
         words: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9inVdkMI1lxmQT54g-dwz-UOFFnoSNnKFKZhS28-SFr99F6p7kYIxkbxg0Q9uXosqiuKCcXIe41pZ/pub?gid=0&single=true&output=csv",
         sentences: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9inVdkMI1lxmQT54g-dwz-UOFFnoSNnKFKZhS28-SFr99F6p7kYIxkbxg0Q9uXosqiuKCcXIe41pZ/pub?gid=244115839&single=true&output=csv",
         trennbare: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9inVdkMI1lxmQT54g-dwz-UOFFnoSNnKFKZhS28-SFr99F6p7kYIxkbxg0Q9uXosqiuKCcXIe41pZ/pub?gid=1086232285&single=true&output=csv",
-        verben_mit_praep: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9inVdkMI1lxmQT54g-dwz-UOFFnoSNnKFKZhS28-SFr99F6p7kYIxkbxg0Q9uXosqiuKCcXIe41pZ/pub?gid=899052099&single=true&output=csv"
+        verben_mit_praep: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9inVdkMI1lxmQT54g-dwz-UOFFnoSNnKFKZhS28-SFr99F6p7kYIxkbxg0Q9uXosqiuKCcXIe41pZ/pub?gid=1810482362&single=true&output=csv"
     };
 
-    let appState = { authenticated: false, activeModule: null, moduleData: {}, searchTerm: "", loading: false };
+    let appState = { authenticated: false, activeModule: null, moduleData: { words: [], sentences: [], trennbare: [], verben_mit_praep: [] }, searchTerm: "", loading: false };
+    let sortState = { column: null, direction: null }; // 'asc', 'desc', null
     
     function showToast(message) {
         const container = document.getElementById('toastContainer');
@@ -359,8 +433,8 @@
             const div = document.createElement('div');
             div.id = 'globalSpinner';
             div.className = 'spinner-overlay';
-            div.innerHTML = `<div class="spinner"></div><div style="color:white;font-weight:500;">იტვირთება...</div>`;
-            document.body.appendChild(div);
+div.innerHTML = `<div class="spinner"></div><div style="color:white;font-weight:600;font-size:1rem;letter-spacing:0.5px;margin-top:12px;">ჩატვირთვა...</div>`;;            
+document.body.appendChild(div);
         } else if (!show && existing) existing.remove();
     }
 
@@ -393,66 +467,94 @@
         return values;
     }
 
+async function renderApp() {
+    setLoading(true);
+    try {
+        const root = document.getElementById('app'); 
+        root.innerHTML = '';
+        // rest of existing renderApp code...
+    } finally {
+        setLoading(false);
+    }
+}
+
     function cleanGermanWord(word) {
         if (!word) return "";
-        let cleaned = word.replace(/^\d+\.\s*/, '');
-        return cleaned.trim();
+        return word.replace(/^\d+\.\s*/, '').trim();
     }
 
-    function hasArticle(word) {
-        const lower = word.toLowerCase();
-        return lower.startsWith("der ") || lower.startsWith("die ") || lower.startsWith("das ") ||
-               lower.startsWith("der,") || lower.startsWith("die,") || lower.startsWith("das,");
+    function speakText(text) {
+        if (!text) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'de-DE';
+        utterance.rate = 0.9;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
     }
 
-    function detectWordLevel(word, idx) {
-        const lower = (word || "").toLowerCase();
-        const a1set = ["sein","haben","werden","gehen","kommen","sprechen","essen","trinken","wohnen","machen","spielen","lernen","heißen","arbeiten","kaufen","bezahlen","fahren","lesen","schreiben","sehen","hören","helfen","bringen","denken","öffnen","schließen","geben","nehmen","liegen","stehen","sitzen","laufen","treffen","finden","nachbar","wohnung","haus","auto","stadt","land","mann","frau","kind","guten","bitte","danke"];
-        const a2set = ["erzählen","erklären","besuchen","bestellen","diskutieren","einladen","vergessen","verbessern","vorbereiten","zerbrechen","beschreiben","verstehen","beginnen","bemerken","entscheiden","auskunft","vorname","familienname"];
-        if (a1set.some(k => lower.includes(k))) return "A1";
-        if (a2set.some(k => lower.includes(k))) return "A2";
-        if (idx < 350) return "A1";
-        if (idx < 800) return "A2";
-        return "B1";
+    function getAudioSVG() {
+        return `<svg class="audio-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.8"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 8.5c1.5 1.5 1.5 4.5 0 6M19.5 5.5c3 3 3 8 0 11"/></svg>`;
+    }
+
+    function processWordsWithLevels(rawWords) {
+        let items = [];
+        let currentLevel = "A1";
+        for (let i = 0; i < rawWords.length; i++) {
+            const w = rawWords[i];
+            let rawGerman = w["Das Wort"] || "";
+            let rawGermanCleaned = cleanGermanWord(rawGerman);
+            let lowerCheck = rawGermanCleaned.toLowerCase();
+            if (lowerCheck.includes("niveau a1+")) { currentLevel = "A1"; continue; }
+            if (lowerCheck.includes("niveau a2+")) { currentLevel = "A2"; continue; }
+            if (lowerCheck.includes("niveau b1+")) { currentLevel = "B1"; continue; }
+            if (rawGermanCleaned === "" || lowerCheck.startsWith("niveau")) continue;
+            items.push({
+                german: rawGermanCleaned,
+                georgian: w["Georgische Übersetzung"] || "",
+                praeteritum: w["Präteritum (3. Person)"] || "",
+                perfekt: w["Perfekt (er/sie)"] || "",
+                hinweis: w["Hinweis"] || "",
+                level: currentLevel
+            });
+        }
+        return items;
+    }
+
+    function processSentencesWithChapters(rawSentences) {
+        let items = [];
+        let currentLevel = "A1";
+        let currentChapter = "Allgemein";
+        for (let s of rawSentences) {
+            let rawGerman = s["Deutsche Sätze"] || "";
+            let cleanedGerman = cleanGermanWord(rawGerman);
+            let lower = cleanedGerman.toLowerCase();
+            if (lower.includes("niveau a1+")) { currentLevel = "A1"; continue; }
+            if (lower.includes("niveau a2+")) { currentLevel = "A2"; continue; }
+            if (lower.includes("niveau b1+")) { currentLevel = "B1"; continue; }
+            if (lower.includes("kap")) {
+                let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
+                if (chapMatch) currentChapter = `KAP. ${chapMatch[1]}`;
+                else currentChapter = cleanedGerman;
+                continue;
+            }
+            if (cleanedGerman === "") continue;
+            items.push({
+                german: cleanedGerman,
+                georgian: s["Georgische Übersetzung"] || "",
+                chapter: currentChapter,
+                level: currentLevel
+            });
+        }
+        return items;
     }
 
     async function loadAllData() {
         setLoading(true);
         try {
             const wordsRaw = await fetchCSV(SHEETS.words);
-            const words = wordsRaw.map((w, idx) => {
-                let rawGerman = w["Das Wort"] || "";
-                let cleaned = cleanGermanWord(rawGerman);
-                return {
-                    german: cleaned,
-                    georgian: w["Georgische Übersetzung"] || "",
-                    praeteritum: w["Präteritum (3. Person)"] || "",
-                    perfekt: w["Perfekt (er/sie)"] || "",
-                    hinweis: w["Hinweis"] || "",
-                    level: detectWordLevel(cleaned, idx)
-                };
-            });
+            const words = processWordsWithLevels(wordsRaw);
             const sentencesRaw = await fetchCSV(SHEETS.sentences);
-            const sentences = sentencesRaw.map(s => {
-                let rawGerman = s["Deutsche Sätze"] || "";
-                let cleanedGerman = rawGerman.replace(/^\d+\.\s*/, '');
-                let chapter = s["KAP"] || s["Kapitel"] || "Allgemein";
-                let chapterNum = chapter.replace(/[^0-9]/g, '');
-                let chapterDisplay = chapterNum ? `KAP. ${chapterNum}` : chapter;
-                return {
-                    german: cleanedGerman,
-                    georgian: s["Georgische Übersetzung"] || "",
-                    chapter: chapterDisplay,
-                    level: "A1"
-                };
-            });
-            // Assign levels to sentences based on chapter (rough mapping)
-            sentences.forEach((s, idx) => {
-                if (idx < 400) s.level = "A1";
-                else if (idx < 900) s.level = "A2";
-                else s.level = "B1";
-            });
-            
+            const sentences = processSentencesWithChapters(sentencesRaw);
             const trennbareRaw = await fetchCSV(SHEETS.trennbare);
             const trennbare = trennbareRaw.map(t => ({
                 prefix: t["Präfix"] || "",
@@ -461,13 +563,13 @@
                 georgian: t["Georgische Übersetzung"] || ""
             }));
             const vpRaw = await fetchCSV(SHEETS.verben_mit_praep);
-            const vp = vpRaw.map(v => ({
-                verb: v["das Verb"] || "",
-                preposition: v["Präposition"] || "",
-                kasus: v["Kasus"] || "",
-                translation: v["Übersetzung"] || "",
-                example: v["Beispile"] || ""
-            }));
+const vp = vpRaw.map(v => ({
+    verb: v["das Verb"] || "",
+    preposition: v["Präposition"] || "",
+    kasus: v["Kasus"] || "",
+    translation: v["Übersetzung"] || "",
+    example: v["Beispiel"] || ""  // ← Fixed typo
+}));
             appState.moduleData = { words, sentences, trennbare, verben_mit_praep: vp };
         } catch(e) { showToast("მონაცემთა ჩატვირთვა ვერ მოხერხდა"); }
         finally { setLoading(false); }
@@ -477,315 +579,355 @@
         const term = appState.searchTerm.trim().toLowerCase();
         const mod = appState.activeModule;
         if (!mod || !appState.moduleData[mod] || term === "") return [];
-        return appState.moduleData[mod].filter(item => {
+        let data = [...appState.moduleData[mod]];
+        data = data.filter(item => {
             if (mod === 'words') return item.german.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
             if (mod === 'sentences') return item.german.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
             if (mod === 'trennbare') return (item.prefix+item.verb).toLowerCase().includes(term) || item.definition.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
             if (mod === 'verben_mit_praep') return item.verb.toLowerCase().includes(term) || item.preposition.toLowerCase().includes(term) || item.translation.toLowerCase().includes(term);
             return false;
         });
+        // Apply sorting if active
+        if (sortState.column && sortState.direction) {
+            data.sort((a, b) => {
+                let valA = a[sortState.column] || '';
+                let valB = b[sortState.column] || '';
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return data;
     }
 
-    function openModal(item, moduleType) {
-        let modalHtml = `<div class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>📋 დეტალური ინფორმაცია</h3><button class="close-modal">დახურვა</button></div>`;
-        if (moduleType === 'words') {
-            const showTempus = !hasArticle(item.german);
-            modalHtml += `<table class="modal-table"><thead><tr><th>Das Wort</th><th>Georgische Übersetzung</th>${showTempus ? '<th>Präteritum (3.P)</th><th>Perfekt (er/sie)</th>' : ''}<th>Hinweis</th></tr></thead><tbody>`;
-            modalHtml += `<tr><td style="font-family:monospace;">${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td>${showTempus ? `<td>${escapeHtml(item.praeteritum || '—')}</td><td>${escapeHtml(item.perfekt || '—')}</td>` : ''}<td>${escapeHtml(item.hinweis || '—')}</td></tr>`;
-            modalHtml += `</tbody>}</div></div>`;
-        } else if (moduleType === 'sentences') {
-            modalHtml += `<table class="modal-table"><thead><tr><th>Deutsche Sätze</th><th>Georgische Übersetzung</th><th>Kapitel</th></tr></thead><tbody>`;
-            modalHtml += `<tr><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.chapter)}</td></tr></tbody></table>`;
-        } else if (moduleType === 'trennbare') {
-            modalHtml += `<table class="modal-table"><thead><tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th></tr></thead><tbody>`;
-            modalHtml += `<tr><td>${escapeHtml(item.prefix)}</td><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.definition)}</td><td>${escapeHtml(item.georgian)}</td></tr></tbody>}</div></div>`;
-        } else if (moduleType === 'verben_mit_praep') {
-            modalHtml += `<table class="modal-table"><thead><tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th></tr></thead><tbody>`;
-            modalHtml += `<tr><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.preposition)}</td><td>${escapeHtml(item.kasus)}</td><td>${escapeHtml(item.translation)}</td><td>${escapeHtml(item.example)}</td></tr></tbody>}</div></div>`;
-        }
-        modalHtml += `</div></div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = document.querySelector('.modal-overlay');
-        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
-        modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
+function printCurrentModule() {
+    const mod = appState.activeModule;
+    if (!mod) return;
+    
+    // Get ALL data from the module, not just filtered results
+    let data = [...appState.moduleData[mod]];
+    
+    if (!data || !data.length) { showToast("მონაცემები არ არის"); return; }
+    
+    let printWindow = window.open('', '_blank');
+    let html = `<html><head><title>${mod} - Komplette Liste</title><style>
+        body{font-family:'Inter',sans-serif;padding:2rem;} 
+        h1{color:#1e293b;} 
+        h2{margin-top:1.5rem; color:#4f46e5;}
+        table{border-collapse:collapse;width:100%;margin-bottom:1.5rem;} 
+        th,td{border:1px solid #cbd5e1;padding:10px;text-align:left;vertical-align:top;} 
+        th{background:#f1f5f9;font-weight:bold;} 
+        .level-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.8rem;}
+    </style></head><body>`;
+    
+    if (mod === 'words') {
+        html += `<h1>📚 Wörter - Komplette Liste</h1>`;
+        const levels = ["A1","A2","B1"];
+        levels.forEach(lvl => {
+            const levelItems = data.filter(w => w.level === lvl);
+            if(levelItems.length){
+                html += `<h2>📖 Niveau ${lvl}+</h2>`;
+                html += `<table><thead><tr>
+                    <th>Das Wort</th>
+                    <th>Georgische Übersetzung</th>
+                    <th>Präteritum (3.P)</th>
+                    <th>Perfekt (er/sie)</th>
+                    <th>Hinweis</th>
+                </tr></thead><tbody>`;
+                levelItems.forEach(w => {
+                    html += `<tr>
+                        <td><strong>${escapeHtml(w.german)}</strong></td>
+                        <td>${escapeHtml(w.georgian)}</td>
+                        <td>${escapeHtml(w.praeteritum || '-')}</td>
+                        <td>${escapeHtml(w.perfekt || '-')}</td>
+                        <td>${escapeHtml(w.hinweis || '-')}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+        });
+    } else if (mod === 'sentences') {
+        html += `<h1>📖 Sätze - Komplette Liste</h1>`;
+        const levels = ["A1","A2","B1"];
+        levels.forEach(lvl => {
+            const levelItems = data.filter(s => s.level === lvl);
+            if(levelItems.length){
+                html += `<h2>📖 Niveau ${lvl}+</h2>`;
+                html += `<tr><thead><tr>
+                    <th>Deutsche Sätze</th>
+                    <th>Georgische Übersetzung</th>
+                    <th>Kapitel</th>
+                </tr></thead><tbody>`;
+                levelItems.forEach(s => {
+                    html += `<tr>
+                        <td>${escapeHtml(s.german)}</td>
+                        <td>${escapeHtml(s.georgian)}</td>
+                        <td>${escapeHtml(s.chapter)}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+        });
+    } else if (mod === 'trennbare') {
+        html += `<h1>🔗 Trennbare Verben - Komplette Liste</h1>`;
+        html += `<table><thead><tr>
+            <th>Präfix</th>
+            <th>Verb</th>
+            <th>Hauptdefinition</th>
+            <th>Georgische Übersetzung</th>
+        </tr></thead><tbody>`;
+        data.forEach(item => {
+            html += `<tr>
+                <td>${escapeHtml(item.prefix)}</td>
+                <td>${escapeHtml(item.verb)}</td>
+                <td>${escapeHtml(item.definition)}</td>
+                <td>${escapeHtml(item.georgian)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+    } else if (mod === 'verben_mit_praep') {
+        html += `<h1>🎯 Verben mit Präpositionen - Komplette Liste</h1>`;
+        html += `<table><thead><tr>
+            <th>das Verb</th>
+            <th>Präposition</th>
+            <th>Kasus</th>
+            <th>Übersetzung</th>
+            <th>Beispiel</th>
+        </tr></thead><tbody>`;
+        data.forEach(item => {
+            html += `<tr>
+                <td>${escapeHtml(item.verb)}</td>
+                <td>${escapeHtml(item.preposition)}</td>
+                <td>${escapeHtml(item.kasus)}</td>
+                <td>${escapeHtml(item.translation)}</td>
+                <td>${escapeHtml(item.example)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
     }
+    
+    html += `</body></html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+function openModal(item, moduleType) {
+    let modalHtml = `<div class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>დეტალური ინფორმაცია</h3><div style="display:flex; gap:8px;"><button class="print-single-btn">ბეჭდვა</button><button class="close-modal">დახურვა</button></div></div>`;
+    if (moduleType === 'words') {
+        modalHtml += `<table class="modal-table" style="width:100%"><thead><tr><th>Niveau</th><th>Das Wort</th><th>Hören</th><th>Georgische Übersetzung</th><th>Präteritum (3.P)</th><th>Perfekt (er/sie)</th><th>Hinweis</th></tr></thead><tbody>`;
+        modalHtml += `<tr><td><span class="level-badge level-${item.level}">${item.level}+</span></td><td style="font-family:monospace;">${escapeHtml(item.german)}</td><td><span class="audio-modal-icon">${getAudioSVG()}</span></td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.praeteritum || '')}</td><td>${escapeHtml(item.perfekt || '')}</td><td>${escapeHtml(item.hinweis || '')}</td></tr>`;
+        modalHtml += `</tbody></table>`;
+    } else if (moduleType === 'sentences') {
+        modalHtml += `<table class="modal-table" style="width:100%"><thead><tr><th>Deutsche Sätze</th><th>Hören</th><th>Georgische Übersetzung</th><th>Niveau</th><th>Kapitel</th></tr></thead><tbody>`;
+        modalHtml += `<tr><td>${escapeHtml(item.german)}</td><td><span class="audio-modal-icon">${getAudioSVG()}</span></td><td>${escapeHtml(item.georgian)}</td><td><span class="level-badge level-${item.level}">${item.level}+</span></td><td><span class="kap-badge">${escapeHtml(item.chapter)}</span></td></tr>`;
+        modalHtml += `</tbody></table>`;
+    } else if (moduleType === 'trennbare') {
+        modalHtml += `<table class="modal-table" style="width:100%"><thead><tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th><th>Vollständiges Wort</th></tr></thead><tbody>`;
+        const fullWord = item.prefix + item.verb;
+        modalHtml += `<tr><td><strong>${escapeHtml(item.prefix)}</strong></td><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.definition)}</td><td>${escapeHtml(item.georgian)}</td><td><span class="german-word">${escapeHtml(fullWord)}</span> <span class="audio-modal-icon">${getAudioSVG()}</span></td></tr>`;
+        modalHtml += `</tbody></table>`;
+    } else if (moduleType === 'verben_mit_praep') {
+        modalHtml += `<table class="modal-table" style="width:100%"><thead><tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th><th>Hören</th></tr></thead><tbody>`;
+        modalHtml += `<tr><td class="german-word">${escapeHtml(item.verb)}</td><td>${escapeHtml(item.preposition)}</td><td>${escapeHtml(item.kasus)}</td><td>${escapeHtml(item.translation)}</td><td><em>${escapeHtml(item.example)}</em></td><td><span class="audio-modal-icon">${getAudioSVG()}</span></td></tr>`;
+        modalHtml += `</tbody></table>`;
+    }
+    modalHtml += `</div></div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalDiv = document.querySelector('.modal-overlay');
+    modalDiv.querySelector('.close-modal').addEventListener('click', () => modalDiv.remove());
+    modalDiv.querySelectorAll('.audio-modal-icon').forEach(el => {
+        el.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            let wordToSpeak = '';
+            if (moduleType === 'words' || moduleType === 'sentences') {
+                wordToSpeak = item.german;
+            } else if (moduleType === 'trennbare') {
+                wordToSpeak = item.prefix + item.verb;
+            } else if (moduleType === 'verben_mit_praep') {
+                wordToSpeak = item.verb + ' ' + item.preposition;
+            }
+            if(wordToSpeak) speakText(wordToSpeak); 
+        });
+    });
+    const printSingleBtn = modalDiv.querySelector('.print-single-btn');
+    if (printSingleBtn) {
+        printSingleBtn.addEventListener('click', () => {
+            let printContent = '';
+            if (moduleType === 'words') {
+                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Niveau</th><th>Das Wort</th><th>Georgische Übersetzung</th><th>Präteritum</th><th>Perfekt</th><th>Hinweis</th></tr><tr><td>${item.level}+</td><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.praeteritum || '')}</td><td>${escapeHtml(item.perfekt || '')}</td><td>${escapeHtml(item.hinweis || '')}</td></tr></table>`;
+            } else if (moduleType === 'sentences') {
+                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Deutsche Sätze</th><th>Georgische Übersetzung</th><th>Niveau</th><th>Kapitel</th></tr><tr><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${item.level}+</td><td>${escapeHtml(item.chapter)}</td></tr></table>`;
+            } else if (moduleType === 'trennbare') {
+                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th><th>Vollständiges Wort</th></tr><tr><td>${escapeHtml(item.prefix)}</td><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.definition)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.prefix + item.verb)}</td></tr></table>`;
+            } else if (moduleType === 'verben_mit_praep') {
+                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th></tr><tr><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.preposition)}</td><td>${escapeHtml(item.kasus)}</td><td>${escapeHtml(item.translation)}</td><td>${escapeHtml(item.example)}</td></tr></table>`;
+            }
+            const win = window.open(); 
+            win.document.write(`<html><head><title>Print</title><style>body{padding:2rem;}</style></head><body>${printContent}</body></html>`); 
+            win.print();
+        });
+    }
+    modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
+}
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-    function updateResultsOnly() {
-        const resultsContainer = document.getElementById('resultsContainer');
-        if (!resultsContainer) return;
-        
-        const mod = appState.activeModule;
-        const term = appState.searchTerm;
-        
-        if (term === "") {
-            resultsContainer.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.2"><path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor"/></svg><p style="margin-top:12px;">🔍 ჩაწერეთ საძიებო სიტყვა</p></div>`;
-            return;
+    function applySorting(columnKey, headerElement) {
+        if (sortState.column === columnKey && sortState.direction === 'asc') {
+            sortState.direction = 'desc';
+        } else if (sortState.column === columnKey && sortState.direction === 'desc') {
+            sortState.column = null;
+            sortState.direction = null;
+        } else {
+            sortState.column = columnKey;
+            sortState.direction = 'asc';
         }
-        
-        const filtered = getFiltered();
-        if (filtered.length === 0) {
-            resultsContainer.innerHTML = `<div class="empty-state">😔 შედეგი არ მოიძებნა</div>`;
-            return;
-        }
-        
-        let tableHtml = '';
-        if (mod === 'words') {
-            tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
-                <tr><th>Niveau</th><th>Das Wort</th><th>Georgische Übersetzung</th><th>Präteritum (3. Person)</th><th>Perfekt (er/sie)</th><th>Hinweis</th></tr>
-            </thead><tbody>`;
-            filtered.forEach(w => {
-                const levelClass = `level-${w.level}`;
-                tableHtml += `<tr class="word-row" data-german="${escapeHtml(w.german)}" data-type="words">
-                    <td style="width:70px;"><span class="level-badge ${levelClass}">${w.level}+</span></td>
-                    <td class="german-word">${escapeHtml(w.german)}</td>
-                    <td class="georgian-trans">${escapeHtml(w.georgian)}</td>
-                    <td><code>${escapeHtml(w.praeteritum || '—')}</code></td>
-                    <td><code>${escapeHtml(w.perfekt || '—')}</code></td>
-                    <td style="color:#78716c;">${escapeHtml(w.hinweis || '—')}</td>
-                </tr>`;
-            });
-            tableHtml += `</tbody>}</div>`;
-        }
-        else if (mod === 'sentences') {
-            tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
-                <tr><th>Niveau</th><th>Kapitel</th><th>Deutsche Sätze</th><th>Georgische Übersetzung</th></tr>
-            </thead><tbody>`;
-            filtered.forEach(s => {
-                const levelClass = `level-${s.level}`;
-                tableHtml += `<tr class="word-row" data-german="${escapeHtml(s.german)}" data-type="sentences">
-                    <td style="width:70px;"><span class="level-badge ${levelClass}">${s.level}+</span></td>
-                    <td style="width:100px;"><span class="kap-badge">${escapeHtml(s.chapter)}</span></td>
-                    <td class="german-word">${escapeHtml(s.german)}</td>
-                    <td class="georgian-trans">${escapeHtml(s.georgian)}</td>
-                </tr>`;
-            });
-            tableHtml += `</tbody>}</div>`;
-        }
-        else if (mod === 'trennbare') {
-            tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
-                <tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th></tr>
-            </thead><tbody>`;
-            filtered.forEach(t => {
-                tableHtml += `<tr class="word-row" data-german="${escapeHtml(t.prefix+t.verb)}" data-type="trennbare">
-                    <td><strong>${escapeHtml(t.prefix)}</strong></td>
-                    <td><strong class="german-word">${escapeHtml(t.verb)}</strong></td>
-                    <td>${escapeHtml(t.definition)}</td>
-                    <td class="georgian-trans">${escapeHtml(t.georgian)}</td>
-                </tr>`;
-            });
-            tableHtml += `</tbody>}</div>`;
-        }
-        else if (mod === 'verben_mit_praep') {
-            tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
-                <tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th></tr>
-            </thead><tbody>`;
-            filtered.forEach(v => {
-                tableHtml += `<tr class="word-row" data-german="${escapeHtml(v.verb)}" data-type="verben_mit_praep">
-                    <td class="german-word">${escapeHtml(v.verb)}</td>
-                    <td>${escapeHtml(v.preposition)}</td>
-                    <td>${escapeHtml(v.kasus)}</td>
-                    <td class="georgian-trans">${escapeHtml(v.translation)}</td>
-                    <td><em>${escapeHtml(v.example)}</em></td>
-                </tr>`;
-            });
-            tableHtml += `</tbody>}</div>`;
-        }
-        
-        resultsContainer.innerHTML = tableHtml;
-        
-        document.querySelectorAll('.word-row').forEach(row => {
-            row.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const type = row.getAttribute('data-type') || appState.activeModule;
-                const germanText = row.cells[type === 'words' ? 1 : (type === 'sentences' ? 2 : 0)]?.innerText?.trim();
-                if (!germanText && type === 'words') {
-                    const cell = row.cells[1];
-                    if(cell) {
-                        const found = appState.moduleData.words.find(w => w.german === cell.innerText.trim());
-                        if(found) openModal(found, 'words');
-                    }
-                    return;
-                }
-                if (type === 'words') {
-                    const found = appState.moduleData.words.find(w => w.german === germanText);
-                    if (found) openModal(found, 'words');
-                } else if (type === 'sentences') {
-                    const sentGerman = row.cells[2]?.innerText.trim();
-                    const found = appState.moduleData.sentences.find(s => s.german === sentGerman);
-                    if (found) openModal(found, 'sentences');
-                } else if (type === 'trennbare') {
-                    const prefix = row.cells[0]?.innerText;
-                    const verb = row.cells[1]?.innerText;
-                    const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb);
-                    if (found) openModal(found, 'trennbare');
-                } else if (type === 'verben_mit_praep') {
-                    const verb = row.cells[0]?.innerText;
-                    const prep = row.cells[1]?.innerText;
-                    const found = appState.moduleData.verben_mit_praep.find(v => v.verb === verb && v.preposition === prep);
-                    if (found) openModal(found, 'verben_mit_praep');
-                }
-            });
-        });
+        updateResultsOnly();
     }
+
+function updateResultsOnly() {
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (!resultsContainer) return;
+    const mod = appState.activeModule;
+    const term = appState.searchTerm;
+    if (term === "") { resultsContainer.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"><path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/></svg><p>ჩაწერეთ სიტყვა</p></div>`; return; }
+    const filtered = getFiltered();
+    if (filtered.length === 0) { resultsContainer.innerHTML = `<div class="empty-state">😔 შედეგი არ მოიძებნა</div>`; return; }
+    let tableHtml = '';
+    if (mod === 'words') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr>
+            <th data-sort="level">Niveau <span class="sort-indicator">${sortState.column === 'level' ? (sortState.direction === 'asc' ? '▲' : '▼') : ''}</span></th>
+            <th data-sort="german">Das Wort <span class="sort-indicator">${sortState.column === 'german' ? (sortState.direction === 'asc' ? '▲' : '▼') : ''}</span></th>
+            <th>Hören</th>
+            <th data-sort="georgian">Georgische Übersetzung <span class="sort-indicator">${sortState.column === 'georgian' ? (sortState.direction === 'asc' ? '▲' : '▼') : ''}</span></th>
+            <th data-sort="praeteritum">Präteritum (3.P)</th>
+            <th data-sort="perfekt">Perfekt (er/sie)</th>
+            <th data-sort="hinweis">Hinweis</th>
+         </tr></thead><tbody>`;
+        filtered.forEach(w => {
+            tableHtml += `<tr class="word-row" data-type="words" data-german="${escapeHtml(w.german)}"><td><span class="level-badge level-${w.level}">${w.level}+</span></td><td class="german-word">${escapeHtml(w.german)}</td><td><span class="audio-table-icon">${getAudioSVG()}</span></td><td class="georgian-trans">${escapeHtml(w.georgian)}</td><td>${escapeHtml(w.praeteritum || '')}</td><td>${escapeHtml(w.perfekt || '')}</td><td>${escapeHtml(w.hinweis || '')}</td></tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
+    } else if (mod === 'sentences') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr>
+            <th data-sort="level">Niveau</th>
+            <th data-sort="chapter">Kapitel</th>
+            <th data-sort="german">Deutsche Sätze</th>
+            <th>Hören</th>
+            <th data-sort="georgian">Georgische Übersetzung</th>
+         </tr></thead><tbody>`;
+        filtered.forEach(s => {
+            tableHtml += `<tr class="word-row" data-type="sentences" data-german="${escapeHtml(s.german)}"><td><span class="level-badge level-${s.level}">${s.level}+</span></td><td><span class="kap-badge">${escapeHtml(s.chapter)}</span></td><td class="german-word">${escapeHtml(s.german)}</td><td><span class="audio-table-icon">${getAudioSVG()}</span></td><td class="georgian-trans">${escapeHtml(s.georgian)}</td></tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
+    } else if (mod === 'trennbare') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="prefix">Präfix</th><th data-sort="verb">Verb</th><th data-sort="definition">Hauptdefinition</th><th data-sort="georgian">Georgische Übersetzung</th></tr></thead><tbody>`;
+        filtered.forEach((t, index) => { 
+            tableHtml += `<tr class="word-row" data-type="trennbare" data-index="${index}" data-prefix="${escapeHtml(t.prefix)}" data-verb="${escapeHtml(t.verb)}"><td><strong>${escapeHtml(t.prefix)}</strong></td><td class="german-word">${escapeHtml(t.verb)}</td><td>${escapeHtml(t.definition)}</td><td>${escapeHtml(t.georgian)}</td></tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
+    } else if (mod === 'verben_mit_praep') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="verb">das Verb</th><th data-sort="preposition">Präposition</th><th data-sort="kasus">Kasus</th><th data-sort="translation">Übersetzung</th><th data-sort="example">Beispiel</th></tr></thead><tbody>`;
+        filtered.forEach((v, index) => { 
+            tableHtml += `<tr class="word-row" data-type="verben_mit_praep" data-index="${index}" data-verb="${escapeHtml(v.verb)}"><td><td class="german-word">${escapeHtml(v.verb)}</td><td>${escapeHtml(v.preposition)}</td><td>${escapeHtml(v.kasus)}</td><td>${escapeHtml(v.translation)}</td><td><em>${escapeHtml(v.example)}</em></td></tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
+    }
+    resultsContainer.innerHTML = tableHtml;
+    
+    // Attach sorting listeners
+    document.querySelectorAll('.data-table th[data-sort]').forEach(th => {
+        const sortKey = th.getAttribute('data-sort');
+        th.addEventListener('click', (e) => { e.stopPropagation(); applySorting(sortKey, th); });
+    });
+    
+    document.querySelectorAll('.audio-table-icon').forEach(icon => {
+        icon.addEventListener('click', (e) => { e.stopPropagation(); const row = icon.closest('tr'); let wordCell = row.cells[mod === 'words' ? 1 : (mod === 'sentences' ? 2 : 0)]; if(wordCell) speakText(wordCell.innerText); });
+    });
+    
+    document.querySelectorAll('.word-row').forEach(row => {
+        row.addEventListener('click', (e) => { 
+            if(e.target.closest('.audio-table-icon')) return; 
+            const type = row.getAttribute('data-type'); 
+            if (type === 'words') { 
+                const germanText = row.getAttribute('data-german'); 
+                const found = appState.moduleData.words.find(w => w.german === germanText); 
+                if(found) openModal(found, 'words'); 
+            } else if (type === 'sentences') { 
+                const germanText = row.getAttribute('data-german'); 
+                const found = appState.moduleData.sentences.find(s => s.german === germanText); 
+                if(found) openModal(found, 'sentences'); 
+            } else if (type === 'trennbare') { 
+                const prefix = row.getAttribute('data-prefix');
+                const verb = row.getAttribute('data-verb');
+                const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb); 
+                if(found) openModal(found, 'trennbare'); 
+            } else if (type === 'verben_mit_praep') { 
+                const verb = row.getAttribute('data-verb');
+                const found = appState.moduleData.verben_mit_praep.find(v => v.verb === verb); 
+                if(found) openModal(found, 'verben_mit_praep'); 
+            }
+        });
+    });
+}
 
     function renderModuleView() {
         const mod = appState.activeModule;
-        const titles = {
-            words: 'სიტყვები',
-            sentences: 'წინადადებები',
-            trennbare: 'გამყოფი ზმნები',
-            verben_mit_praep: 'ზმნები წინდებულებთან'
-        };
-        
-        const container = document.createElement('div');
-        container.className = 'glass-card';
-        container.style.padding = '1.2rem 1rem';
-        container.innerHTML = `
-            <div class="header-flex">
-                <h2 style="font-weight:800; display:flex; gap:8px; align-items:center;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
-                    ${titles[mod]}
-                </h2>
-                <div style="display:flex; gap:10px;">
-                    <button class="signout-btn" id="signoutBtn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display:inline; margin-right:4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg>
-                        გასვლა
-                    </button>
-                    <button class="back-btn" id="backBtn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                        ყველა მოდული
-                    </button>
-                </div>
-            </div>
-            <div class="search-area">
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 ძებნა (მყისიერი)..." autocomplete="off">
-            </div>
-            <div class="results-container" id="resultsContainer">
-                <div class="empty-state">🔎 ჩაწერეთ საძიებო სიტყვა</div>
-            </div>
-        `;
+        const titles = { words: 'Wörter', sentences: 'Sätze', trennbare: 'Trennbare Verben', verben_mit_praep: 'Verben mit Präp.' };
+        const container = document.createElement('div'); container.className = 'glass-card'; container.style.padding = '1.2rem 1rem';
+        container.innerHTML = `<div class="header-flex"><div class="title-row"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg><h2 style="font-weight:800;">${titles[mod]}</h2></div><div style="display:flex; gap:10px;"><button class="print-btn" id="printListBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V3h12v6M6 21h12v-6H6zM21 9H3v8h4V9h14v8h4V9z"/></svg> ბეჭდვა</button><button class="signout-btn" id="signoutBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg> გასვლა</button><button class="back-btn" id="backBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> ყველა მოდული</button></div></div><div class="search-area"><input type="text" id="searchInput" class="search-input" placeholder="ძებნა..."></div><div class="results-container" id="resultsContainer"><div class="empty-state">ჩაწერეთ სიტყვა</div></div>`;
         return container;
     }
     
     function attachModuleEvents(container) {
         const searchInput = container.querySelector('#searchInput');
-        if (searchInput) {
-            searchInput.value = appState.searchTerm;
-            const handler = (e) => {
-                appState.searchTerm = e.target.value;
-                updateResultsOnly();
-            };
-            searchInput.addEventListener('input', handler);
-        }
-        
-        const backBtn = container.querySelector('#backBtn');
-        if (backBtn) backBtn.addEventListener('click', () => { appState.activeModule = null; appState.searchTerm = ""; renderApp(); });
-        
-        const signoutBtn = container.querySelector('#signoutBtn');
-        if (signoutBtn) signoutBtn.addEventListener('click', () => { appState.authenticated = false; appState.activeModule = null; appState.searchTerm = ""; renderApp(); });
-        
-        if (appState.searchTerm !== "") updateResultsOnly();
+        if (searchInput) { searchInput.value = appState.searchTerm; searchInput.addEventListener('input', (e) => { appState.searchTerm = e.target.value; sortState.column = null; sortState.direction = null; updateResultsOnly(); }); }
+        container.querySelector('#backBtn')?.addEventListener('click', () => { appState.activeModule = null; appState.searchTerm = ""; sortState = { column: null, direction: null }; renderApp(); });
+        container.querySelector('#signoutBtn')?.addEventListener('click', () => { appState.authenticated = false; appState.activeModule = null; appState.searchTerm = ""; renderApp(); });
+        container.querySelector('#printListBtn')?.addEventListener('click', () => printCurrentModule());
+        if (appState.searchTerm !== "") updateResultsOnly(); else updateResultsOnly();
     }
 
     function renderModulesDashboard() {
-        const container = document.createElement('div');
-        container.className = 'glass-card';
-        container.style.padding = '1.8rem';
-        container.innerHTML = `
-            <div class="header-flex">
-                <h1 style="font-weight:800; display:flex; gap:8px;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    გერმანული მოდულები
-                </h1>
-                <button class="signout-btn" id="signoutDashboard">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg>
-                    გასვლა
-                </button>
-            </div>
-            <div class="modules-grid">
-                <div class="module-card" data-module="words">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 11h6M8 15h4"/></svg>
-                    <div class="module-title">სიტყვები</div>
-                    <div style="font-size:12px">A1, A2, B1</div>
-                </div>
-                <div class="module-card" data-module="sentences">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
-                    <div class="module-title">წინადადებები</div>
-                </div>
-                <div class="module-card" data-module="trennbare">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M5 3l14 9-14 9V3z"/><path d="M12 12l4-2.5"/></svg>
-                    <div class="module-title">Trennbare Verben</div>
-                </div>
-                <div class="module-card" data-module="verben_mit_praep">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M7 7h10v10H7z"/><path d="M12 7v10M7 12h10"/></svg>
-                    <div class="module-title">Verben mit Präp.</div>
-                </div>
-            </div>
-        `;
+        const container = document.createElement('div'); container.className = 'glass-card'; container.style.padding = '1.8rem';
+        container.innerHTML = `<div class="header-flex"><div class="title-row clickable-title" id="refreshTitle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><h1 style="font-weight:800;">ShogiLang</h1></div><button class="signout-btn" id="signoutDashboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg> გასვლა</button></div><div class="modules-grid"><div class="module-card" data-module="words"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 11h6M8 15h4"/></svg><div class="module-title">Wörter</div></div><div class="module-card" data-module="sentences"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg><div class="module-title">Sätze</div></div><div class="module-card" data-module="trennbare"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M5 3l14 9-14 9V3z"/><circle cx="12" cy="12" r="1.5"/></svg><div class="module-title">Trennbare Verben</div></div><div class="module-card" data-module="verben_mit_praep"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M7 7h10v10H7z"/><path d="M12 7v10M7 12h10"/></svg><div class="module-title">Verben mit Präp.</div></div></div>`;
         return container;
     }
     
     function attachDashboardEvents(container) {
-        const signout = container.querySelector('#signoutDashboard');
-        if (signout) signout.addEventListener('click', () => { appState.authenticated = false; renderApp(); });
-        container.querySelectorAll('.module-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const mod = card.getAttribute('data-module');
-                if (mod) { appState.activeModule = mod; appState.searchTerm = ""; renderApp(); }
-            });
-        });
+        container.querySelector('#signoutDashboard')?.addEventListener('click', () => { appState.authenticated = false; renderApp(); });
+container.querySelector('#refreshTitle')?.addEventListener('click', async () => { 
+    setLoading(true);
+    await loadAllData();
+    renderApp();
+});
+container.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', () => { const mod = card.getAttribute('data-module'); if (mod) { appState.activeModule = mod; appState.searchTerm = ""; sortState = { column: null, direction: null }; renderApp(); } }); });
     }
 
     function renderLogin() {
-        const container = document.createElement('div');
-        container.className = 'glass-card login-panel';
-        container.innerHTML = `
-            <div><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.2"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/></svg></div>
-            <h2 style="margin:1rem 0;">ავტორიზაცია</h2>
-            <input type="text" id="loginUser" placeholder="მომხმარებელი" autocomplete="off">
-            <input type="password" id="loginPass" placeholder="პაროლი">
-            <button id="loginBtn">შესვლა</button>
-        `;
+        const container = document.createElement('div'); container.className = 'glass-card login-panel';
+        container.innerHTML = `<div><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/><circle cx="12" cy="12" r="3"/></svg></div><h2 style="margin:1rem 0;">ShogiLang</h2><input type="text" id="loginUser" placeholder="მომხმარებელი"><input type="password" id="loginPass" placeholder="პაროლი"><button id="loginBtn">შესვლა</button>`;
         return container;
     }
     
     function attachLoginEvents(container) {
-        const loginBtn = container.querySelector('#loginBtn');
-        if (loginBtn) {
-            loginBtn.addEventListener('click', async () => {
-                const user = container.querySelector('#loginUser').value.trim();
-                const pass = container.querySelector('#loginPass').value.trim();
-                if (user === 'alex' && pass === '2911') {
-                    appState.authenticated = true;
-                    await loadAllData();
-                    renderApp();
-                } else {
-                    showToast('მომხმარებელი ან პაროლი არასწორია');
-                }
-            });
-        }
+        container.querySelector('#loginBtn')?.addEventListener('click', async () => {
+            const user = container.querySelector('#loginUser').value.trim();
+            const pass = container.querySelector('#loginPass').value.trim();
+            if (user === 'alex' && pass === '2911') { appState.authenticated = true; await loadAllData(); renderApp(); } 
+            else showToast('მომხმარებელი ან პაროლი არასწორია');
+        });
     }
 
     async function renderApp() {
-        const root = document.getElementById('app');
-        root.innerHTML = '';
-        if (!appState.authenticated) {
-            const loginDiv = renderLogin();
-            root.appendChild(loginDiv);
-            attachLoginEvents(loginDiv);
-        } else if (!appState.activeModule) {
-            const dashboard = renderModulesDashboard();
-            root.appendChild(dashboard);
-            attachDashboardEvents(dashboard);
-        } else {
-            const moduleView = renderModuleView();
-            root.appendChild(moduleView);
-            attachModuleEvents(moduleView);
-        }
+        const root = document.getElementById('app'); root.innerHTML = '';
+        if (!appState.authenticated) { const loginDiv = renderLogin(); root.appendChild(loginDiv); attachLoginEvents(loginDiv); }
+        else if (!appState.activeModule) { const dashboard = renderModulesDashboard(); root.appendChild(dashboard); attachDashboardEvents(dashboard); }
+        else { const moduleView = renderModuleView(); root.appendChild(moduleView); attachModuleEvents(moduleView); }
     }
-    
     renderApp();
 </script>
 </body>
