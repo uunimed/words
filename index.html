@@ -483,14 +483,51 @@ async function renderApp() {
         return word.replace(/^\d+\.\s*/, '').trim();
     }
 
-    function speakText(text) {
-        if (!text) return;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'de-DE';
-        utterance.rate = 0.9;
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
+function speakText(text, lang = 'de-DE') {
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+}
+
+function speakFullDetails(item, moduleType) {
+    if (!item) return;
+    
+    let textToSpeak = '';
+    let lang = 'de-DE';
+    
+    switch(moduleType) {
+        case 'words':
+            // German word + Georgian meaning + Präteritum + Perfekt + Hinweis
+            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}. Präteritum des Verbes: ${item.praeteritum || 'არ არის'}. Perfekt des Verbes: ${item.perfekt || 'არ არის'}. Hinweis: ${item.hinweis || 'არ არის'}`;
+            lang = 'de-DE';
+            // Speak German first, then Georgian part will use German voice (limited but works)
+            break;
+            
+        case 'sentences':
+            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}`;
+            break;
+            
+        case 'trennbare':
+            textToSpeak = `${item.prefix} ${item.verb}. ძირითადი მნიშვნელობა: ${item.definition}. სიტყვის ქართული თარგმანი: ${item.georgian}. სრული ზმნა: ${item.prefix}${item.verb}`;
+            break;
+            
+        case 'verben_mit_praep':
+            textToSpeak = `${item.verb}, პრეპოზიცია ${item.preposition}. მაგალითი: ${item.example || 'მაგალითი არ არის'}`;
+            break;
+            
+        default:
+            textToSpeak = item.german || item.verb || '';
     }
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'de-DE';
+    utterance.rate = 0.85;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+}
 
     function getAudioSVG() {
         return `<svg class="audio-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.8"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 8.5c1.5 1.5 1.5 4.5 0 6M19.5 5.5c3 3 3 8 0 11"/></svg>`;
@@ -742,20 +779,12 @@ function openModal(item, moduleType) {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modalDiv = document.querySelector('.modal-overlay');
     modalDiv.querySelector('.close-modal').addEventListener('click', () => modalDiv.remove());
-    modalDiv.querySelectorAll('.audio-modal-icon').forEach(el => {
-        el.addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            let wordToSpeak = '';
-            if (moduleType === 'words' || moduleType === 'sentences') {
-                wordToSpeak = item.german;
-            } else if (moduleType === 'trennbare') {
-                wordToSpeak = item.prefix + item.verb;
-            } else if (moduleType === 'verben_mit_praep') {
-                wordToSpeak = item.verb + ' ' + item.preposition;
-            }
-            if(wordToSpeak) speakText(wordToSpeak); 
-        });
+modalDiv.querySelectorAll('.audio-modal-icon').forEach(el => {
+    el.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        speakFullDetails(item, moduleType);
     });
+});
     const printSingleBtn = modalDiv.querySelector('.print-single-btn');
     if (printSingleBtn) {
         printSingleBtn.addEventListener('click', () => {
@@ -860,16 +889,33 @@ if (term === "") {
         th.addEventListener('click', (e) => { e.stopPropagation(); applySorting(sortKey, th); });
     });
     
-document.querySelectorAll('.audio-table-icon').forEach(icon => {
+document.querySelectorAll('.audio-table-icon').forEach((icon, idx) => {
     icon.addEventListener('click', (e) => { 
         e.stopPropagation(); 
-        const row = icon.closest('tr'); 
-        let wordCell;
-        if (mod === 'words') wordCell = row.cells[1];
-        else if (mod === 'sentences') wordCell = row.cells[2];
-        else if (mod === 'verben_mit_praep') wordCell = row.cells[0]; // First column is das Verb
-        else wordCell = row.cells[0];
-        if(wordCell) speakText(wordCell.innerText); 
+        const row = icon.closest('tr');
+        
+        if (mod === 'words') {
+            const germanText = row.getAttribute('data-german');
+            const found = appState.moduleData.words.find(w => w.german === germanText);
+            if (found) speakFullDetails(found, 'words');
+        }
+        else if (mod === 'sentences') {
+            const germanText = row.getAttribute('data-german');
+            const found = appState.moduleData.sentences.find(s => s.german === germanText);
+            if (found) speakFullDetails(found, 'sentences');
+        }
+        else if (mod === 'trennbare') {
+            const prefix = row.getAttribute('data-prefix');
+            const verb = row.getAttribute('data-verb');
+            const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb);
+            if (found) speakFullDetails(found, 'trennbare');
+        }
+        else if (mod === 'verben_mit_praep') {
+            const index = row.getAttribute('data-index');
+            if (index !== null && appState.moduleData.verben_mit_praep[index]) {
+                speakFullDetails(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+            }
+        }
     });
 });
     
