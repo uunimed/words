@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Deutsche Lernplattform | ქართული ინტერფეისი</title>
+    <title>ShogiLang</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -612,7 +612,7 @@ function printCurrentModule() {
     if (!data || !data.length) { showToast("მონაცემები არ არის"); return; }
     
     let printWindow = window.open('', '_blank');
-    let html = `<html><head><title>${mod} - Komplette Liste</title><style>
+    let html = `<html><head><title>${mod}</title><style>
         body{font-family:'Inter',sans-serif;padding:2rem;} 
         h1{color:#1e293b;} 
         h2{margin-top:1.5rem; color:#4f46e5;}
@@ -623,12 +623,12 @@ function printCurrentModule() {
     </style></head><body>`;
     
     if (mod === 'words') {
-        html += `<h1>📚 Wörter - Komplette Liste</h1>`;
+        html += `<h1></h1>`;
         const levels = ["A1","A2","B1"];
         levels.forEach(lvl => {
             const levelItems = data.filter(w => w.level === lvl);
             if(levelItems.length){
-                html += `<h2>📖 Niveau ${lvl}+</h2>`;
+                html += `<h2>${lvl}+</h2>`;
                 html += `<table><thead><tr>
                     <th>Das Wort</th>
                     <th>Georgische Übersetzung</th>
@@ -640,21 +640,21 @@ function printCurrentModule() {
                     html += `<tr>
                         <td><strong>${escapeHtml(w.german)}</strong></td>
                         <td>${escapeHtml(w.georgian)}</td>
-                        <td>${escapeHtml(w.praeteritum || '-')}</td>
-                        <td>${escapeHtml(w.perfekt || '-')}</td>
-                        <td>${escapeHtml(w.hinweis || '-')}</td>
+                        <td>${escapeHtml(w.praeteritum || '')}</td>
+                        <td>${escapeHtml(w.perfekt || '')}</td>
+                        <td>${escapeHtml(w.hinweis || '')}</td>
                     </tr>`;
                 });
                 html += `</tbody></table>`;
             }
         });
     } else if (mod === 'sentences') {
-        html += `<h1>📖 Sätze - Komplette Liste</h1>`;
+        html += `<h1></h1>`;
         const levels = ["A1","A2","B1"];
         levels.forEach(lvl => {
             const levelItems = data.filter(s => s.level === lvl);
             if(levelItems.length){
-                html += `<h2>📖 Niveau ${lvl}+</h2>`;
+                html += `<h2>${lvl}+</h2>`;
                 html += `<tr><thead><tr>
                     <th>Deutsche Sätze</th>
                     <th>Georgische Übersetzung</th>
@@ -671,7 +671,7 @@ function printCurrentModule() {
             }
         });
     } else if (mod === 'trennbare') {
-        html += `<h1>🔗 Trennbare Verben - Komplette Liste</h1>`;
+        html += `<h1></h1>`;
         html += `<table><thead><tr>
             <th>Präfix</th>
             <th>Verb</th>
@@ -688,7 +688,7 @@ function printCurrentModule() {
         });
         html += `</tbody></table>`;
     } else if (mod === 'verben_mit_praep') {
-        html += `<h1>🎯 Verben mit Präpositionen - Komplette Liste</h1>`;
+        html += `<h1></h1>`;
         html += `<table><thead><tr>
             <th>das Verb</th>
             <th>Präposition</th>
@@ -795,7 +795,7 @@ function updateResultsOnly() {
     const term = appState.searchTerm;
     if (term === "") { resultsContainer.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"><path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/></svg><p>ჩაწერეთ სიტყვა</p></div>`; return; }
     const filtered = getFiltered();
-    if (filtered.length === 0) { resultsContainer.innerHTML = `<div class="empty-state">😔 შედეგი არ მოიძებნა</div>`; return; }
+    if (filtered.length === 0) { resultsContainer.innerHTML = `<div class="empty-state">შედეგი არ მოიძებნა</div>`; return; }
     let tableHtml = '';
     if (mod === 'words') {
         tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr>
