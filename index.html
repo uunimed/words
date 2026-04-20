@@ -492,78 +492,41 @@ function speakText(text, lang = 'de-DE') {
     window.speechSynthesis.speak(utterance);
 }
 
-// დაამატე ეს ფუნქცია ხელმისაწვდომი ხმების შესამოწმებლად
-function checkAvailableVoices() {
-    window.speechSynthesis.onvoiceschanged = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const georgianVoices = voices.filter(v => v.lang.includes('ka') || v.lang.includes('ge'));
-        console.log('ხელმისაწვდომი ქართული ხმები:', georgianVoices);
-        console.log('ყველა ხმა:', voices.map(v => `${v.name} (${v.lang})`));
-    };
-}
-
-// გამოიძახე ეს ფუნქცია აპლიკაციის ჩატვირთვისას
-checkAvailableVoices();
-
-async function speakGeorgianViaGoogle(text) {
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ka&client=tw-ob`;
-    const audio = new Audio(url);
-    audio.play();
-}
-
-// და შემდეგ speakFullDetails-ში გამოიყენე:
-// await speakGeorgianViaGoogle(georgianText);
-
 function speakFullDetails(item, moduleType) {
     if (!item) return;
     
-    let germanText = '';
-    let georgianText = '';
+    let textToSpeak = '';
     let lang = 'de-DE';
     
     switch(moduleType) {
         case 'words':
-            germanText = `${item.german}. Präteritum: ${item.praeteritum || 'არ არის'}. Perfekt: ${item.perfekt || 'არ არის'}. ${item.hinweis || ''}`;
-            georgianText = item.georgian;
+            // German word + Georgian meaning + Präteritum + Perfekt + Hinweis
+            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}. Präteritum des Verbes: ${item.praeteritum || 'არ არის'}. Perfekt des Verbes: ${item.perfekt || 'არ არის'}. Hinweis: ${item.hinweis || 'არ არის'}`;
+            lang = 'de-DE';
+            // Speak German first, then Georgian part will use German voice (limited but works)
             break;
+            
         case 'sentences':
-            germanText = item.german;
-            georgianText = item.georgian;
+            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}`;
             break;
+            
         case 'trennbare':
-            germanText = `${item.prefix} ${item.verb}. ${item.definition}`;
-            georgianText = item.georgian;
+            textToSpeak = `${item.prefix} ${item.verb}. ძირითადი მნიშვნელობა: ${item.definition}. სიტყვის ქართული თარგმანი: ${item.georgian}. სრული ზმნა: ${item.prefix}${item.verb}`;
             break;
+            
         case 'verben_mit_praep':
-            germanText = `${item.verb} ${item.preposition}. ${item.example || ''}`;
-            georgianText = item.translation;
+            textToSpeak = `${item.verb}, პრეპოზიცია ${item.preposition}. მაგალითი: ${item.example || 'მაგალითი არ არის'}`;
             break;
+            
+        default:
+            textToSpeak = item.german || item.verb || '';
     }
     
-    // პირველად წაიკითხე გერმანულად
-    if (germanText && germanText.trim()) {
-        const utterance1 = new SpeechSynthesisUtterance(germanText);
-        utterance1.lang = 'de-DE';
-        utterance1.rate = 0.85;
-        utterance1.onend = () => {
-            // გერმანულის დასრულების შემდეგ წაიკითხე ქართულად
-            if (georgianText && georgianText.trim()) {
-                const utterance2 = new SpeechSynthesisUtterance(georgianText);
-                utterance2.lang = 'ka-GE';  // ქართული ენის კოდი
-                utterance2.rate = 0.85;
-                window.speechSynthesis.speak(utterance2);
-            }
-        };
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance1);
-    } else if (georgianText && georgianText.trim()) {
-        // თუ გერმანული ტექსტი არ არის, მხოლოდ ქართული
-        const utterance = new SpeechSynthesisUtterance(georgianText);
-        utterance.lang = 'ka-GE';
-        utterance.rate = 0.85;
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
-    }
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'de-DE';
+    utterance.rate = 0.85;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
 }
 
     function getAudioSVG() {
