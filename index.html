@@ -396,6 +396,31 @@
             margin-left: 6px;
             font-size: 10px;
         }
+        
+        .print-footer {
+    display: none;
+}
+@media print {
+    .print-footer {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        font-size: 8px;
+        color: #666;
+        text-align: left;
+        padding: 4px 8px;
+        background: white;
+        border-top: 1px solid #ccc;
+        font-family: 'Inter', sans-serif;
+        z-index: 1000;
+    }
+    body {
+        padding-bottom: 25px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -405,6 +430,7 @@
 </svg>
 <div class="container" id="app"></div>
 <div class="toast-container" id="toastContainer"></div>
+
 
 <script>
     const SHEETS = {
@@ -532,6 +558,28 @@ function speakFullDetails(item, moduleType) {
     function getAudioSVG() {
         return `<svg class="audio-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.8"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 8.5c1.5 1.5 1.5 4.5 0 6M19.5 5.5c3 3 3 8 0 11"/></svg>`;
     }
+
+function updatePrintFooter() {
+    const footer = document.getElementById('printFooter');
+    if (footer) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString();
+        const timeStr = now.toLocaleTimeString();
+        const deviceName = navigator.userAgent.includes('Windows') ? 'Windows PC' :
+                          navigator.userAgent.includes('Mac') ? 'Mac' :
+                          navigator.userAgent.includes('Linux') ? 'Linux' :
+                          navigator.userAgent.includes('Android') ? 'Android Device' :
+                          navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Unknown Device';
+        footer.innerHTML = `Designed by Aleksi Shogiradze | Printed: ${dateStr}, ${timeStr} | Printed by: ${deviceName} | All pages printed`;
+    }
+}
+
+// Override the print function to update footer before printing
+const originalPrint = printCurrentModule;
+printCurrentModule = function() {
+    updatePrintFooter();
+    originalPrint();
+};
 
     function processWordsWithLevels(rawWords) {
         let items = [];
@@ -749,6 +797,11 @@ function printCurrentModule() {
         html += `</tbody></table>`;
     }
     
+    // Add this line inside the printWindow.document.write(html) - right before </body>
+html += `<div style="position: fixed; bottom: 8px; left: 8px; font-size: 9px; color: #999; font-family: monospace; width: 100%; text-align: left; border-top: 1px solid #eee; padding-top: 4px; margin-top: 20px;">
+    Designed by Aleksi Shogiradze | Printed: ${new Date().toLocaleString()} | Device: ${navigator.platform || navigator.userAgent.split('(')[1]?.split(')')[0] || 'Unknown'} | All pages printed
+</div>`;
+
     html += `</body></html>`;
     printWindow.document.write(html);
     printWindow.document.close();
@@ -787,21 +840,25 @@ modalDiv.querySelectorAll('.audio-modal-icon').forEach(el => {
 });
     const printSingleBtn = modalDiv.querySelector('.print-single-btn');
     if (printSingleBtn) {
-        printSingleBtn.addEventListener('click', () => {
-            let printContent = '';
-            if (moduleType === 'words') {
-                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Niveau</th><th>Das Wort</th><th>Georgische Übersetzung</th><th>Präteritum</th><th>Perfekt</th><th>Hinweis</th></tr><tr><td>${item.level}+</td><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.praeteritum || '')}</td><td>${escapeHtml(item.perfekt || '')}</td><td>${escapeHtml(item.hinweis || '')}</td></tr></table>`;
-            } else if (moduleType === 'sentences') {
-                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Deutsche Sätze</th><th>Georgische Übersetzung</th><th>Niveau</th><th>Kapitel</th></tr><tr><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${item.level}+</td><td>${escapeHtml(item.chapter)}</td></tr></table>`;
-            } else if (moduleType === 'trennbare') {
-                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th><th>Vollständiges Wort</th></tr><tr><td>${escapeHtml(item.prefix)}</td><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.definition)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.prefix + item.verb)}</td></tr></table>`;
-            } else if (moduleType === 'verben_mit_praep') {
-                printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th></tr><tr><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.preposition)}</td><td>${escapeHtml(item.kasus)}</td><td>${escapeHtml(item.translation)}</td><td>${escapeHtml(item.example)}</td></tr></table>`;
-            }
-            const win = window.open(); 
-            win.document.write(`<html><head><title>Print</title><style>body{padding:2rem;}</style></head><body>${printContent}</body></html>`); 
-            win.print();
-        });
+printSingleBtn.addEventListener('click', () => {
+    let printContent = '';
+    if (moduleType === 'words') {
+        printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Niveau</th><th>Das Wort</th><th>Georgische Übersetzung</th><th>Präteritum</th><th>Perfekt</th><th>Hinweis</th></tr><tr><td>${item.level}+</td><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.praeteritum || '')}</td><td>${escapeHtml(item.perfekt || '')}</td><td>${escapeHtml(item.hinweis || '')}</td></tr></table>`;
+    } else if (moduleType === 'sentences') {
+        printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Deutsche Sätze</th><th>Georgische Übersetzung</th><th>Niveau</th><th>Kapitel</th></tr><tr><td>${escapeHtml(item.german)}</td><td>${escapeHtml(item.georgian)}</td><td>${item.level}+</td><td>${escapeHtml(item.chapter)}</td></tr></table>`;
+    } else if (moduleType === 'trennbare') {
+        printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>Präfix</th><th>Verb</th><th>Hauptdefinition</th><th>Georgische Übersetzung</th><th>Vollständiges Wort</th></tr><tr><td>${escapeHtml(item.prefix)}</td><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.definition)}</td><td>${escapeHtml(item.georgian)}</td><td>${escapeHtml(item.prefix + item.verb)}</td></tr></table>`;
+    } else if (moduleType === 'verben_mit_praep') {
+        printContent = `<table border="1" cellpadding="8" style="width:100%; border-collapse:collapse;"><tr><th>das Verb</th><th>Präposition</th><th>Kasus</th><th>Übersetzung</th><th>Beispiel</th></tr><tr><td>${escapeHtml(item.verb)}</td><td>${escapeHtml(item.preposition)}</td><td>${escapeHtml(item.kasus)}</td><td>${escapeHtml(item.translation)}</td><td>${escapeHtml(item.example)}</td></tr></table>`;
+    }
+    // Add footer to single print
+    printContent += `<div style="position: fixed; bottom: 8px; left: 8px; font-size: 9px; color: #999; font-family: monospace; width: 100%; text-align: left; border-top: 1px solid #eee; padding-top: 4px; margin-top: 20px;">
+        Designed by Aleksi Shogiradze | Printed: ${new Date().toLocaleString()} | Device: ${navigator.platform || navigator.userAgent.split('(')[1]?.split(')')[0] || 'Unknown'} | All pages printed
+    </div>`;
+    const win = window.open(); 
+    win.document.write(`<html><head><title>Print</title><style>body{padding:2rem; font-family: 'Inter', sans-serif;} @media print { .fixed-footer { position: fixed; bottom: 0; left: 0; } }</style></head><body>${printContent}</body></html>`); 
+    win.print();
+});
     }
     modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
 }
