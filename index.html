@@ -492,71 +492,77 @@ function speakText(text, lang = 'de-DE') {
     window.speechSynthesis.speak(utterance);
 }
 
+// დაამატე ეს ფუნქცია ხელმისაწვდომი ხმების შესამოწმებლად
+function checkAvailableVoices() {
+    window.speechSynthesis.onvoiceschanged = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const georgianVoices = voices.filter(v => v.lang.includes('ka') || v.lang.includes('ge'));
+        console.log('ხელმისაწვდომი ქართული ხმები:', georgianVoices);
+        console.log('ყველა ხმა:', voices.map(v => `${v.name} (${v.lang})`));
+    };
+}
+
+// გამოიძახე ეს ფუნქცია აპლიკაციის ჩატვირთვისას
+checkAvailableVoices();
+
+async function speakGeorgianViaGoogle(text) {
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ka&client=tw-ob`;
+    const audio = new Audio(url);
+    audio.play();
+}
+
+// და შემდეგ speakFullDetails-ში გამოიყენე:
+// await speakGeorgianViaGoogle(georgianText);
+
 function speakFullDetails(item, moduleType) {
     if (!item) return;
     
+    let germanText = '';
+    let georgianText = '';
+    let lang = 'de-DE';
+    
     switch(moduleType) {
         case 'words':
-            // Speak German part first
-            const germanText = `${item.german}. Präteritum: ${item.praeteritum || 'nicht verfügbar'}. Perfekt: ${item.perfekt || 'nicht verfügbar'}. Hinweis: ${item.hinweis || 'kein Hinweis'}.`;
-            const germanUtterance = new SpeechSynthesisUtterance(germanText);
-            germanUtterance.lang = 'de-DE';
-            germanUtterance.rate = 0.85;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(germanUtterance);
-            
-            // Then speak Georgian part after a short delay
-            setTimeout(() => {
-                const georgianText = `ქართული მნიშვნელობა: ${item.georgian}`;
-                const georgianUtterance = new SpeechSynthesisUtterance(georgianText);
-                georgianUtterance.lang = 'ka-GE';
-                georgianUtterance.rate = 0.85;
-                window.speechSynthesis.speak(georgianUtterance);
-            }, 1000);
+            germanText = `${item.german}. Präteritum: ${item.praeteritum || 'არ არის'}. Perfekt: ${item.perfekt || 'არ არის'}. ${item.hinweis || ''}`;
+            georgianText = item.georgian;
             break;
-            
         case 'sentences':
-            const germanSentence = `${item.german}.`;
-            const sentenceGerman = new SpeechSynthesisUtterance(germanSentence);
-            sentenceGerman.lang = 'de-DE';
-            sentenceGerman.rate = 0.85;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(sentenceGerman);
-            
-            setTimeout(() => {
-                const georgianSentence = `ქართული მნიშვნელობა: ${item.georgian}`;
-                const sentenceGeorgian = new SpeechSynthesisUtterance(georgianSentence);
-                sentenceGeorgian.lang = 'ka-GE';
-                sentenceGeorgian.rate = 0.85;
-                window.speechSynthesis.speak(sentenceGeorgian);
-            }, 1000);
+            germanText = item.german;
+            georgianText = item.georgian;
             break;
-            
         case 'trennbare':
-            const trennbarText = `${item.prefix} ${item.verb}. ძირითადი მნიშვნელობა: ${item.definition}.`;
-            const trennbarGerman = new SpeechSynthesisUtterance(trennbarText);
-            trennbarGerman.lang = 'de-DE';
-            trennbarGerman.rate = 0.85;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(trennbarGerman);
-            
-            setTimeout(() => {
-                const trennbarGeorgian = `სიტყვის ქართული თარგმანი: ${item.georgian}. სრული ზმნა: ${item.prefix}${item.verb}`;
-                const trennbarGeorgianVoice = new SpeechSynthesisUtterance(trennbarGeorgian);
-                trennbarGeorgianVoice.lang = 'ka-GE';
-                trennbarGeorgianVoice.rate = 0.85;
-                window.speechSynthesis.speak(trennbarGeorgianVoice);
-            }, 1000);
+            germanText = `${item.prefix} ${item.verb}. ${item.definition}`;
+            georgianText = item.georgian;
             break;
-            
         case 'verben_mit_praep':
-            const verbText = `${item.verb}, პრეპოზიცია ${item.preposition}. მაგალითი: ${item.example || 'მაგალითი არ არის'}`;
-            const verbUtterance = new SpeechSynthesisUtterance(verbText);
-            verbUtterance.lang = 'de-DE';
-            verbUtterance.rate = 0.85;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(verbUtterance);
+            germanText = `${item.verb} ${item.preposition}. ${item.example || ''}`;
+            georgianText = item.translation;
             break;
+    }
+    
+    // პირველად წაიკითხე გერმანულად
+    if (germanText && germanText.trim()) {
+        const utterance1 = new SpeechSynthesisUtterance(germanText);
+        utterance1.lang = 'de-DE';
+        utterance1.rate = 0.85;
+        utterance1.onend = () => {
+            // გერმანულის დასრულების შემდეგ წაიკითხე ქართულად
+            if (georgianText && georgianText.trim()) {
+                const utterance2 = new SpeechSynthesisUtterance(georgianText);
+                utterance2.lang = 'ka-GE';  // ქართული ენის კოდი
+                utterance2.rate = 0.85;
+                window.speechSynthesis.speak(utterance2);
+            }
+        };
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance1);
+    } else if (georgianText && georgianText.trim()) {
+        // თუ გერმანული ტექსტი არ არის, მხოლოდ ქართული
+        const utterance = new SpeechSynthesisUtterance(georgianText);
+        utterance.lang = 'ka-GE';
+        utterance.rate = 0.85;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
     }
 }
 
