@@ -495,38 +495,69 @@ function speakText(text, lang = 'de-DE') {
 function speakFullDetails(item, moduleType) {
     if (!item) return;
     
-    let textToSpeak = '';
-    let lang = 'de-DE';
-    
     switch(moduleType) {
         case 'words':
-            // German word + Georgian meaning + Präteritum + Perfekt + Hinweis
-            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}. Präteritum des Verbes: ${item.praeteritum || 'არ არის'}. Perfekt des Verbes: ${item.perfekt || 'არ არის'}. Hinweis: ${item.hinweis || 'არ არის'}`;
-            lang = 'de-DE';
-            // Speak German first, then Georgian part will use German voice (limited but works)
+            // Speak German part first
+            const germanText = `${item.german}. Präteritum: ${item.praeteritum || 'nicht verfügbar'}. Perfekt: ${item.perfekt || 'nicht verfügbar'}. Hinweis: ${item.hinweis || 'kein Hinweis'}.`;
+            const germanUtterance = new SpeechSynthesisUtterance(germanText);
+            germanUtterance.lang = 'de-DE';
+            germanUtterance.rate = 0.85;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(germanUtterance);
+            
+            // Then speak Georgian part after a short delay
+            setTimeout(() => {
+                const georgianText = `ქართული მნიშვნელობა: ${item.georgian}`;
+                const georgianUtterance = new SpeechSynthesisUtterance(georgianText);
+                georgianUtterance.lang = 'ka-GE';
+                georgianUtterance.rate = 0.85;
+                window.speechSynthesis.speak(georgianUtterance);
+            }, 1000);
             break;
             
         case 'sentences':
-            textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}`;
+            const germanSentence = `${item.german}.`;
+            const sentenceGerman = new SpeechSynthesisUtterance(germanSentence);
+            sentenceGerman.lang = 'de-DE';
+            sentenceGerman.rate = 0.85;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(sentenceGerman);
+            
+            setTimeout(() => {
+                const georgianSentence = `ქართული მნიშვნელობა: ${item.georgian}`;
+                const sentenceGeorgian = new SpeechSynthesisUtterance(georgianSentence);
+                sentenceGeorgian.lang = 'ka-GE';
+                sentenceGeorgian.rate = 0.85;
+                window.speechSynthesis.speak(sentenceGeorgian);
+            }, 1000);
             break;
             
         case 'trennbare':
-            textToSpeak = `${item.prefix} ${item.verb}. ძირითადი მნიშვნელობა: ${item.definition}. სიტყვის ქართული თარგმანი: ${item.georgian}. სრული ზმნა: ${item.prefix}${item.verb}`;
+            const trennbarText = `${item.prefix} ${item.verb}. ძირითადი მნიშვნელობა: ${item.definition}.`;
+            const trennbarGerman = new SpeechSynthesisUtterance(trennbarText);
+            trennbarGerman.lang = 'de-DE';
+            trennbarGerman.rate = 0.85;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(trennbarGerman);
+            
+            setTimeout(() => {
+                const trennbarGeorgian = `სიტყვის ქართული თარგმანი: ${item.georgian}. სრული ზმნა: ${item.prefix}${item.verb}`;
+                const trennbarGeorgianVoice = new SpeechSynthesisUtterance(trennbarGeorgian);
+                trennbarGeorgianVoice.lang = 'ka-GE';
+                trennbarGeorgianVoice.rate = 0.85;
+                window.speechSynthesis.speak(trennbarGeorgianVoice);
+            }, 1000);
             break;
             
         case 'verben_mit_praep':
-            textToSpeak = `${item.verb}, პრეპოზიცია ${item.preposition}. მაგალითი: ${item.example || 'მაგალითი არ არის'}`;
+            const verbText = `${item.verb}, პრეპოზიცია ${item.preposition}. მაგალითი: ${item.example || 'მაგალითი არ არის'}`;
+            const verbUtterance = new SpeechSynthesisUtterance(verbText);
+            verbUtterance.lang = 'de-DE';
+            verbUtterance.rate = 0.85;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(verbUtterance);
             break;
-            
-        default:
-            textToSpeak = item.german || item.verb || '';
     }
-    
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'de-DE';
-    utterance.rate = 0.85;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
 }
 
     function getAudioSVG() {
