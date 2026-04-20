@@ -531,12 +531,13 @@ async function renderApp() {
             if (lower.includes("niveau a1+")) { currentLevel = "A1"; continue; }
             if (lower.includes("niveau a2+")) { currentLevel = "A2"; continue; }
             if (lower.includes("niveau b1+")) { currentLevel = "B1"; continue; }
-            if (lower.includes("kap")) {
-                let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
-                if (chapMatch) currentChapter = `KAP. ${chapMatch[1]}`;
-                else currentChapter = cleanedGerman;
-                continue;
-            }
+// Look for "Kap" or "KAP" followed by space, dot, or number - NOT "kap" inside words like "kaputt"
+if (lower.match(/^(kap\.?\s*|niveau\s*kap\.?)/i) || lower.match(/\s(kap\.?\s*[ivxlcdm0-9]+)/i)) {
+    let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
+    if (chapMatch) currentChapter = `KAP. ${chapMatch[1]}`;
+    else currentChapter = cleanedGerman;
+    continue;
+}
             if (cleanedGerman === "") continue;
             items.push({
                 german: cleanedGerman,
@@ -837,10 +838,17 @@ if (term === "") {
             tableHtml += `<tr class="word-row" data-type="trennbare" data-index="${index}" data-prefix="${escapeHtml(t.prefix)}" data-verb="${escapeHtml(t.verb)}"><td><strong>${escapeHtml(t.prefix)}</strong></td><td class="german-word">${escapeHtml(t.verb)}</td><td>${escapeHtml(t.definition)}</td><td>${escapeHtml(t.georgian)}</td></tr>`;
         });
         tableHtml += `</tbody></table></div>`;
-    } else if (mod === 'verben_mit_praep') {
-    tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="verb">das Verb</th><th data-sort="preposition">Präposition</th><th data-sort="kasus">Kasus</th><th data-sort="translation">Übersetzung</th><th data-sort="example">Beispiel</th></tr></thead><tbody>`;
+} else if (mod === 'verben_mit_praep') {
+    tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="verb">das Verb</th><th data-sort="preposition">Präposition</th><th data-sort="kasus">Kasus</th><th data-sort="translation">Übersetzung</th><th data-sort="example">Beispiel</th><th>Hören</th></tr></thead><tbody>`;
     filtered.forEach((v, index) => { 
-        tableHtml += `<tr class="word-row" data-type="verben_mit_praep" data-index="${index}" data-verb="${escapeHtml(v.verb)}"><tr><td class="german-word">${escapeHtml(v.verb)}</td><td>${escapeHtml(v.preposition)}</td><td>${escapeHtml(v.kasus)}</td><td>${escapeHtml(v.translation)}</td><td><em>${escapeHtml(v.example)}</em></td></tr>`;
+        tableHtml += `<tr class="word-row" data-type="verben_mit_praep" data-index="${index}" data-verb="${escapeHtml(v.verb)}">`;
+        tableHtml += `<td class="german-word">${escapeHtml(v.verb)}</td>`;
+        tableHtml += `<td>${escapeHtml(v.preposition)}</td>`;
+        tableHtml += `<td>${escapeHtml(v.kasus)}</td>`;
+        tableHtml += `<td>${escapeHtml(v.translation)}</td>`;
+        tableHtml += `<td><em>${escapeHtml(v.example)}</em></td>`;
+        tableHtml += `<td><span class="audio-table-icon">${getAudioSVG()}</span></td>`;
+        tableHtml += `</tr>`;
     });
     tableHtml += `</tbody></table></div>`;
 }
@@ -865,30 +873,32 @@ document.querySelectorAll('.audio-table-icon').forEach(icon => {
     });
 });
     
-    document.querySelectorAll('.word-row').forEach(row => {
-        row.addEventListener('click', (e) => { 
-            if(e.target.closest('.audio-table-icon')) return; 
-            const type = row.getAttribute('data-type'); 
-            if (type === 'words') { 
-                const germanText = row.getAttribute('data-german'); 
-                const found = appState.moduleData.words.find(w => w.german === germanText); 
-                if(found) openModal(found, 'words'); 
-            } else if (type === 'sentences') { 
-                const germanText = row.getAttribute('data-german'); 
-                const found = appState.moduleData.sentences.find(s => s.german === germanText); 
-                if(found) openModal(found, 'sentences'); 
-            } else if (type === 'trennbare') { 
-                const prefix = row.getAttribute('data-prefix');
-                const verb = row.getAttribute('data-verb');
-                const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb); 
-                if(found) openModal(found, 'trennbare'); 
-} else if (type === 'verben_mit_praep') { 
-    const verb = row.getAttribute('data-verb');
-    const found = appState.moduleData.verben_mit_praep.find(v => (v.verb || "") === verb); 
-    if(found) openModal(found, 'verben_mit_praep'); 
-}
-        });
+document.querySelectorAll('.word-row').forEach(row => {
+    row.addEventListener('click', (e) => { 
+        if(e.target.closest('.audio-table-icon')) return; 
+        const type = row.getAttribute('data-type'); 
+        if (type === 'words') { 
+            const germanText = row.getAttribute('data-german'); 
+            const found = appState.moduleData.words.find(w => w.german === germanText); 
+            if(found) openModal(found, 'words'); 
+        } else if (type === 'sentences') { 
+            const germanText = row.getAttribute('data-german'); 
+            const found = appState.moduleData.sentences.find(s => s.german === germanText); 
+            if(found) openModal(found, 'sentences'); 
+        } else if (type === 'trennbare') { 
+            const prefix = row.getAttribute('data-prefix');
+            const verb = row.getAttribute('data-verb');
+            const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb); 
+            if(found) openModal(found, 'trennbare'); 
+        } else if (type === 'verben_mit_praep') { 
+            // Use a unique identifier - store the index
+            const index = row.getAttribute('data-index');
+            if (index !== null && appState.moduleData.verben_mit_praep[index]) {
+                openModal(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+            }
+        }
     });
+});
 }
 
     function renderModuleView() {
