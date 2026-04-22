@@ -509,27 +509,39 @@ async function renderApp() {
         return word.replace(/^\d+\.\s*/, '').trim();
     }
 
-function speakText(text, lang = 'de-DE') {
+async function speakText(text, lang = 'de-DE') {
     if (!text) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
     utterance.rate = 0.9;
-    window.speechSynthesis.cancel();
+    utterance.pitch = 1.0;
+    utterance.volume = 1;
+    
+    // Use user's preferred voice if set, otherwise get best male voice
+    if (userPreferredVoice) {
+        utterance.voice = userPreferredVoice;
+    } else {
+        const bestVoice = await getBestGermanVoice();
+        if (bestVoice) {
+            utterance.voice = bestVoice;
+        }
+    }
+    
     window.speechSynthesis.speak(utterance);
 }
 
-function speakFullDetails(item, moduleType) {
+async function speakFullDetails(item, moduleType) {
     if (!item) return;
     
     let textToSpeak = '';
-    let lang = 'de-DE';
     
     switch(moduleType) {
         case 'words':
-            // German word + Georgian meaning + Präteritum + Perfekt + Hinweis
             textToSpeak = `${item.german}. ქართული მნიშვნელობა: ${item.georgian}. Präteritum des Verbes: ${item.praeteritum || 'არ არის'}. Perfekt des Verbes: ${item.perfekt || 'არ არის'}. Hinweis: ${item.hinweis || 'არ არის'}`;
-            lang = 'de-DE';
-            // Speak German first, then Georgian part will use German voice (limited but works)
             break;
             
         case 'sentences':
@@ -548,12 +560,102 @@ function speakFullDetails(item, moduleType) {
             textToSpeak = item.german || item.verb || '';
     }
     
+    // Cancel ongoing speech
+    window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'de-DE';
     utterance.rate = 0.85;
-    window.speechSynthesis.cancel();
+    utterance.pitch = 1.0;
+    utterance.volume = 1;
+    
+    // Get the best available voice
+    const bestVoice = await getBestGermanVoice();
+    if (bestVoice) {
+        utterance.voice = bestVoice;
+    }
+    
     window.speechSynthesis.speak(utterance);
 }
+
+// Function to get all available German voices
+function getAvailableGermanVoices() {
+    return new Promise((resolve) => {
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            const germanVoices = voices.filter(v => v.lang === 'de-DE' || v.lang.startsWith('de'));
+            
+            // Also include good male voices from other languages that work for German
+            const otherMaleVoices = voices.filter(v => 
+                (v.name.toLowerCase().includes('male') || 
+                 v.name.toLowerCase().includes('david') ||
+                 v.name.toLowerCase().includes('stefan')) &&
+                (v.lang === 'en-US' || v.lang === 'en-GB')
+            );
+            
+            const allVoices = [...germanVoices, ...otherMaleVoices];
+            resolve(allVoices.length > 0 ? allVoices : voices);
+        };
+        
+        if (window.speechSynthesis.getVoices().length > 0) {
+            loadVoices();
+        } else {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    });
+}
+
+// Store user's voice preference
+let userPreferredVoice = null;
+
+// Function to set voice preference
+async function setVoicePreference(voiceName) {
+    const voices = await getAvailableGermanVoices();
+    userPreferredVoice = voices.find(v => v.name === voiceName);
+    if (userPreferredVoice) {
+        localStorage.setItem('preferredVoiceName', voiceName);
+        localStorage.setItem('preferredVoiceLang', userPreferredVoice.lang);
+        showToast(`Voice changed to: ${userPreferredVoice.name}`);
+    }
+}
+
+// Load saved preference on app start
+async function loadVoicePreference() {
+    const savedVoiceName = localStorage.getItem('preferredVoiceName');
+    if (savedVoiceName) {
+        const voices = await getAvailableGermanVoices();
+        userPreferredVoice = voices.find(v => v.name === savedVoiceName);
+        if (userPreferredVoice) {
+            console.log('Loaded preferred voice:', userPreferredVoice.name);
+        }
+    }
+}
+
+// Function to set voice preference
+async function setVoicePreference(voiceName) {
+    const voices = await getAvailableGermanVoices();
+    userPreferredVoice = voices.find(v => v.name === voiceName);
+    localStorage.setItem('preferredVoice', voiceName);
+}
+
+// Load saved preference on app start
+async function loadVoicePreference() {
+    const savedVoice = localStorage.getItem('preferredVoice');
+    if (savedVoice) {
+        const voices = await getAvailableGermanVoices();
+        userPreferredVoice = voices.find(v => v.name === savedVoice);
+    }
+}
+
+// Optional: Split long text into smaller chunks
+async function speakWithPauses(text, chunkDelay = 200) {
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    for (const sentence of sentences) {
+        await speakText(sentence);
+        await new Promise(resolve => setTimeout(resolve, chunkDelay));
+    }
+}
+
 
     function getAudioSVG() {
         return `<svg class="audio-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.8"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 8.5c1.5 1.5 1.5 4.5 0 6M19.5 5.5c3 3 3 8 0 11"/></svg>`;
@@ -877,6 +979,77 @@ printSingleBtn.addEventListener('click', () => {
         }
         updateResultsOnly();
     }
+    
+function getBestGermanVoice() {
+    return new Promise((resolve) => {
+        // Wait for voices to load
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            
+            // Priority order for MALE German voices (most human-like first)
+            const preferredMaleVoices = [
+                'Google Deutsch männlich',  // Google's male German voice
+                'Microsoft Stefan',         // Microsoft's male German voice
+                'Stefan',                   // Male German voice
+                'Google UK English Male',   // Male voice that works for German
+                'Google US English Male',   // Alternative male voice
+                'Microsoft David',          // Male voice
+                'de-DE Male',               // Generic male German
+                'de-DE'                     // Fallback to any German voice
+            ];
+            
+            // First, try to find explicit male German voices
+            for (const preferred of preferredMaleVoices) {
+                const voice = voices.find(v => 
+                    v.name.includes(preferred) || 
+                    (v.lang === 'de-DE' && v.name.toLowerCase().includes('male')) ||
+                    (v.lang.startsWith('de') && v.name.toLowerCase().includes('männlich'))
+                );
+                if (voice) {
+                    console.log('Selected male voice:', voice.name);
+                    resolve(voice);
+                    return;
+                }
+            }
+            
+            // If no explicit male voice, find any male voice that supports German
+            const maleGermanVoice = voices.find(v => 
+                (v.lang === 'de-DE' || v.lang.startsWith('de')) && 
+                (v.name.toLowerCase().includes('male') || 
+                 v.name.toLowerCase().includes('männlich') ||
+                 v.name.toLowerCase().includes('stefan') ||
+                 v.name.toLowerCase().includes('david') ||
+                 v.name.toLowerCase().includes('marcus'))
+            );
+            
+            if (maleGermanVoice) {
+                console.log('Found male voice:', maleGermanVoice.name);
+                resolve(maleGermanVoice);
+                return;
+            }
+            
+            // Fallback: try to find any German voice (might be female)
+            const germanVoice = voices.find(v => v.lang === 'de-DE' || v.lang.startsWith('de'));
+            if (germanVoice) {
+                console.warn('No male voice found, using:', germanVoice.name);
+                resolve(germanVoice);
+                return;
+            }
+            
+            // Last resort: any voice
+            console.warn('No German voice found, using default');
+            resolve(voices[0]);
+        };
+        
+        // Handle voice loading (sometimes takes a moment)
+        if (window.speechSynthesis.getVoices().length > 0) {
+            loadVoices();
+        } else {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    });
+}
+
 
 function updateResultsOnly() {
     const resultsContainer = document.getElementById('resultsContainer');
@@ -1021,21 +1194,142 @@ document.querySelectorAll('.word-row').forEach(row => {
         if (appState.searchTerm !== "") updateResultsOnly(); else updateResultsOnly();
     }
 
-    function renderModulesDashboard() {
-        const container = document.createElement('div'); container.className = 'glass-card'; container.style.padding = '1.8rem';
-        container.innerHTML = `<div class="header-flex"><div class="title-row clickable-title" id="refreshTitle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><h1 style="font-weight:800;">ShogiLang</h1></div><button class="signout-btn" id="signoutDashboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg> გასვლა</button></div><div class="modules-grid"><div class="module-card" data-module="words"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 11h6M8 15h4"/></svg><div class="module-title">Wörter</div></div><div class="module-card" data-module="sentences"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg><div class="module-title">Sätze</div></div><div class="module-card" data-module="trennbare"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M5 3l14 9-14 9V3z"/><circle cx="12" cy="12" r="1.5"/></svg><div class="module-title">Trennbare Verben</div></div><div class="module-card" data-module="verben_mit_praep"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2"><path d="M7 7h10v10H7z"/><path d="M12 7v10M7 12h10"/></svg><div class="module-title">Verben mit Präp.</div></div></div>`;
-        return container;
-    }
+function renderModulesDashboard() {
+    const container = document.createElement('div'); 
+    container.className = 'glass-card'; 
+    container.style.padding = '1.8rem';
+    container.innerHTML = `<div class="header-flex">
+        <div class="title-row clickable-title" id="refreshTitle">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <h1 style="font-weight:800;">ShogiLang</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="voice-btn" id="voiceSelectorBtn" style="background: #8b5cf6; width: auto; margin: 0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: inline; margin-right: 5px;">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/>
+                </svg>
+                ხმა
+            </button>
+            <button class="signout-btn" id="signoutDashboard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/>
+                </svg>
+                გასვლა
+            </button>
+        </div>
+    </div>
+    <div class="modules-grid">
+        <div class="module-card" data-module="words">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2">
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+                <path d="M8 7h8M8 11h6M8 15h4"/>
+            </svg>
+            <div class="module-title">Wörter</div>
+        </div>
+        <div class="module-card" data-module="sentences">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2">
+                <path d="M4 7h16M4 12h16M4 17h10"/>
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+            </svg>
+            <div class="module-title">Sätze</div>
+        </div>
+        <div class="module-card" data-module="trennbare">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2">
+                <path d="M5 3l14 9-14 9V3z"/>
+                <circle cx="12" cy="12" r="1.5"/>
+            </svg>
+            <div class="module-title">Trennbare Verben</div>
+        </div>
+        <div class="module-card" data-module="verben_mit_praep">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.2">
+                <path d="M7 7h10v10H7z"/>
+                <path d="M12 7v10M7 12h10"/>
+            </svg>
+            <div class="module-title">Verben mit Präp.</div>
+        </div>
+    </div>`;
+    return container;
+}
+
+async function showVoiceSelector() {
+    const voices = await getAvailableGermanVoices();
     
-    function attachDashboardEvents(container) {
-        container.querySelector('#signoutDashboard')?.addEventListener('click', () => { appState.authenticated = false; renderApp(); });
-container.querySelector('#refreshTitle')?.addEventListener('click', async () => { 
-    setLoading(true);
-    await loadAllData();
-    renderApp();
-});
-container.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', () => { const mod = card.getAttribute('data-module'); if (mod) { appState.activeModule = mod; appState.searchTerm = ""; sortState = { column: null, direction: null }; renderApp(); } }); });
-    }
+    // Separate male and female voices
+    const maleVoices = voices.filter(v => 
+        v.name.toLowerCase().includes('male') || 
+        v.name.toLowerCase().includes('männlich') ||
+        v.name.toLowerCase().includes('stefan') ||
+        v.name.toLowerCase().includes('david') ||
+        v.name.toLowerCase().includes('marcus') ||
+        v.name.toLowerCase().includes('google')
+    );
+    
+    const femaleVoices = voices.filter(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('weiblich') ||
+        v.name.toLowerCase().includes('samantha') ||
+        (!maleVoices.includes(v))
+    );
+    
+    let modalHtml = `<div class="modal-overlay"><div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Choose Voice / აირჩიეთ ხმა</h3>
+            <button class="close-modal" style="width: auto;">Close</button>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <h4>Male Voices / მამრობითი ხმები:</h4>
+            ${maleVoices.map(v => `<button class="voice-option" data-voice="${v.name}" style="margin: 5px; padding: 8px 16px; width: auto; background: ${userPreferredVoice?.name === v.name ? '#4f46e5' : '#64748b'}">${v.name} (${v.lang})</button>`).join('')}
+            ${maleVoices.length === 0 ? '<p>No male voices found / მამრობითი ხმები ვერ მოიძებნა</p>' : ''}
+        </div>
+        <div>
+            <h4>Female Voices / მდედრობითი ხმები:</h4>
+            ${femaleVoices.map(v => `<button class="voice-option" data-voice="${v.name}" style="margin: 5px; padding: 8px 16px; width: auto; background: #94a3b8;">${v.name} (${v.lang})</button>`).join('')}
+        </div>
+    </div></div>`;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.querySelector('.modal-overlay');
+    
+    modal.querySelectorAll('.voice-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const voiceName = btn.getAttribute('data-voice');
+            await setVoicePreference(voiceName);
+            modal.remove();
+            // Test the new voice
+            speakText("Hallo, das ist meine neue Stimme", 'de-DE');
+        });
+    });
+    
+    modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
+}
+
+function attachDashboardEvents(container) {
+    container.querySelector('#signoutDashboard')?.addEventListener('click', () => { appState.authenticated = false; renderApp(); });
+    
+    container.querySelector('#refreshTitle')?.addEventListener('click', async () => { 
+        setLoading(true);
+        await loadAllData();
+        renderApp();
+    });
+    
+    container.querySelector('#voiceSelectorBtn')?.addEventListener('click', showVoiceSelector);
+    
+    container.querySelectorAll('.module-card').forEach(card => { 
+        card.addEventListener('click', () => { 
+            const mod = card.getAttribute('data-module'); 
+            if (mod) { 
+                appState.activeModule = mod; 
+                appState.searchTerm = ""; 
+                sortState = { column: null, direction: null }; 
+                renderApp(); 
+            } 
+        }); 
+    });
+}
 
     function renderLogin() {
         const container = document.createElement('div'); container.className = 'glass-card login-panel';
