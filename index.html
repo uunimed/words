@@ -148,17 +148,27 @@
             font-size: 0.95rem;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3); }
-        .signout-btn, .print-btn {
-            background: #64748b;
-            margin-top: 0;
-            width: auto;
-            padding: 0.5rem 1.2rem;
-            font-size: 0.8rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .print-btn { background: #2d6a4f; }
+.signout-btn, .print-btn, .refresh-module-btn, .back-btn {
+    background: #64748b;
+    margin-top: 0;
+    width: auto;
+    padding: 0.35rem 1rem;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    line-height: 1.2;
+}
+.print-btn { background: #2d6a4f; }
+.refresh-module-btn { background: #059669; }
+.back-btn { background: #e2e8f0; color: #1e293b; }
+
+/* Make icons smaller in buttons */
+.signout-btn svg, .print-btn svg, .refresh-module-btn svg, .back-btn svg {
+    width: 14px;
+    height: 14px;
+}
         .header-flex {
             display: flex;
             justify-content: space-between;
@@ -420,6 +430,26 @@
         padding-bottom: 25px;
     }
 }
+
+.level-B2 { background: #ddd6fe; color: #4c1d95; }
+
+const additionalStyles = `
+    .loading-state {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+    .refresh-module-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+    .module-card.loading {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+`;
 
     </style>
 </head>
@@ -683,41 +713,66 @@ printCurrentModule = function() {
     originalPrint();
 };
 
-    function processWordsWithLevels(rawWords) {
-        let items = [];
-        let currentLevel = "A1";
-        for (let i = 0; i < rawWords.length; i++) {
-            const w = rawWords[i];
-            let rawGerman = w["Das Wort"] || "";
-            let rawGermanCleaned = cleanGermanWord(rawGerman);
-            let lowerCheck = rawGermanCleaned.toLowerCase();
-            if (lowerCheck.includes("niveau a1+")) { currentLevel = "A1"; continue; }
-            if (lowerCheck.includes("niveau a2+")) { currentLevel = "A2"; continue; }
-            if (lowerCheck.includes("niveau b1+")) { currentLevel = "B1"; continue; }
-            if (rawGermanCleaned === "" || lowerCheck.startsWith("niveau")) continue;
-            items.push({
-                german: rawGermanCleaned,
-                georgian: w["Georgische Übersetzung"] || "",
-                praeteritum: w["Präteritum (3. Person)"] || "",
-                perfekt: w["Perfekt (er/sie)"] || "",
-                hinweis: w["Hinweis"] || "",
-                level: currentLevel
-            });
+function processWordsWithLevels(rawWords) {
+    let items = [];
+    let currentLevel = "A1";
+    for (let i = 0; i < rawWords.length; i++) {
+        const w = rawWords[i];
+        let rawGerman = w["Das Wort"] || "";
+        let rawGermanCleaned = cleanGermanWord(rawGerman);
+        let lowerCheck = rawGermanCleaned.toLowerCase();
+        
+        // Debug logging
+        if (lowerCheck.includes("niveau")) {
+            console.log("Found niveau row:", rawGermanCleaned);
         }
-        return items;
+        
+        if (lowerCheck.includes("niveau b2+")) { 
+            console.log("Setting level to B2");
+            currentLevel = "B2"; 
+            continue; 
+        }
+        if (lowerCheck.includes("niveau b1+")) { 
+            currentLevel = "B1"; 
+            continue; 
+        }
+        if (lowerCheck.includes("niveau a2+")) { 
+            currentLevel = "A2"; 
+            continue; 
+        }
+        if (lowerCheck.includes("niveau a1+")) { 
+            currentLevel = "A1"; 
+            continue; 
+        }
+        
+        if (rawGermanCleaned === "" || lowerCheck.startsWith("niveau")) continue;
+        
+        items.push({
+            german: rawGermanCleaned,
+            georgian: w["Georgische Übersetzung"] || "",
+            praeteritum: w["Präteritum (3. Person)"] || "",
+            perfekt: w["Perfekt (er/sie)"] || "",
+            hinweis: w["Hinweis"] || "",
+            level: currentLevel
+        });
     }
+    console.log("Total words processed:", items.length);
+    console.log("B2 words:", items.filter(i => i.level === "B2").length);
+    return items;
+}
 
-    function processSentencesWithChapters(rawSentences) {
-        let items = [];
-        let currentLevel = "A1";
-        let currentChapter = "Allgemein";
-        for (let s of rawSentences) {
-            let rawGerman = s["Deutsche Sätze"] || "";
-            let cleanedGerman = cleanGermanWord(rawGerman);
-            let lower = cleanedGerman.toLowerCase();
-            if (lower.includes("niveau a1+")) { currentLevel = "A1"; continue; }
-            if (lower.includes("niveau a2+")) { currentLevel = "A2"; continue; }
-            if (lower.includes("niveau b1+")) { currentLevel = "B1"; continue; }
+function processSentencesWithChapters(rawSentences) {
+    let items = [];
+    let currentLevel = "A1";
+    let currentChapter = "Allgemein";
+    for (let s of rawSentences) {
+        let rawGerman = s["Deutsche Sätze"] || "";
+        let cleanedGerman = cleanGermanWord(rawGerman);
+        let lower = cleanedGerman.toLowerCase();
+        if (lower.includes("niveau a1+")) { currentLevel = "A1"; continue; }
+        if (lower.includes("niveau a2+")) { currentLevel = "A2"; continue; }
+        if (lower.includes("niveau b1+")) { currentLevel = "B1"; continue; }
+        if (lower.includes("niveau b2+")) { currentLevel = "B2"; continue; }  // ADD THIS LINE
 // Look for "Kap" or "KAP" followed by space, dot, or number - NOT "kap" inside words like "kaputt"
 if (lower.match(/^(kap\.?\s*|niveau\s*kap\.?)/i) || lower.match(/\s(kap\.?\s*[ivxlcdm0-9]+)/i)) {
     let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
@@ -736,59 +791,81 @@ if (lower.match(/^(kap\.?\s*|niveau\s*kap\.?)/i) || lower.match(/\s(kap\.?\s*[iv
         return items;
     }
 
-    async function loadAllData() {
-        setLoading(true);
-        try {
-            const wordsRaw = await fetchCSV(SHEETS.words);
-            const words = processWordsWithLevels(wordsRaw);
-            const sentencesRaw = await fetchCSV(SHEETS.sentences);
-            const sentences = processSentencesWithChapters(sentencesRaw);
-            const trennbareRaw = await fetchCSV(SHEETS.trennbare);
-            const trennbare = trennbareRaw.map(t => ({
-                prefix: t["Präfix"] || "",
-                verb: t["Verb"] || "",
-                definition: t["Hauptdefinition"] || "",
-                georgian: t["Georgische Übersetzung"] || ""
-            }));
-const vpRaw = await fetchCSV(SHEETS.verben_mit_praep);
-const vp = vpRaw.map(v => ({
-    verb: v["das Verb"] || v["Verb"] || "",
-    preposition: v["Präposition"] || "",
-    kasus: v["Kasus"] || "",
-    translation: v["Übersetzung"] || "",
-    example: v["Beispile"] || v["Beispiel"] || ""  // Changed to match your CSV header "Beispile"
-}));
-            appState.moduleData = { words, sentences, trennbare, verben_mit_praep: vp };
-        } catch(e) { showToast("მონაცემთა ჩატვირთვა ვერ მოხერხდა"); }
-        finally { setLoading(false); }
+// Update loadAllData to record timestamp
+async function loadAllData(forceRefresh = false) {
+    setLoading(true);
+    try {
+        const wordsRaw = await fetchCSV(SHEETS.words);
+        const words = processWordsWithLevels(wordsRaw);
+        const sentencesRaw = await fetchCSV(SHEETS.sentences);
+        const sentences = processSentencesWithChapters(sentencesRaw);
+        const trennbareRaw = await fetchCSV(SHEETS.trennbare);
+        const trennbare = trennbareRaw.map(t => ({
+            prefix: t["Präfix"] || "",
+            verb: t["Verb"] || "",
+            definition: t["Hauptdefinition"] || "",
+            georgian: t["Georgische Übersetzung"] || ""
+        }));
+        const vpRaw = await fetchCSV(SHEETS.verben_mit_praep);
+        const vp = vpRaw.map(v => ({
+            verb: v["das Verb"] || v["Verb"] || "",
+            preposition: v["Präposition"] || "",
+            kasus: v["Kasus"] || "",
+            translation: v["Übersetzung"] || "",
+            example: v["Beispile"] || v["Beispiel"] || ""
+        }));
+        appState.moduleData = { words, sentences, trennbare, verben_mit_praep: vp };
+        lastDataLoadTime = new Date();
+        console.log(`Data loaded at: ${lastDataLoadTime.toLocaleTimeString()}`);
+        console.log(`Word count: ${words.length}, B2 words: ${words.filter(w => w.level === "B2").length}`);
+    } catch(e) { 
+        showToast("მონაცემთა ჩატვირთვა ვერ მოხერხდა");
+        console.error(e);
     }
+    finally { setLoading(false); }
+}
 
-    function getFiltered() {
-        const term = appState.searchTerm.trim().toLowerCase();
-        const mod = appState.activeModule;
-        if (!mod || !appState.moduleData[mod] || term === "") return [];
-        let data = [...appState.moduleData[mod]];
+// Add a helper function to check if data needs refresh (optional)
+function isDataStale() {
+    if (!lastDataLoadTime) return true;
+    const now = new Date();
+    const diffMinutes = (now - lastDataLoadTime) / 1000 / 60;
+    return diffMinutes > 5; // Consider data stale after 5 minutes
+}
+
+
+function getFiltered() {
+    const term = appState.searchTerm.trim().toLowerCase();
+    const mod = appState.activeModule;
+    if (!mod || !appState.moduleData[mod]) return [];  // REMOVED the "term === ''" condition
+    
+    let data = [...appState.moduleData[mod]];
+    
+    // Only filter if there's a search term
+    if (term !== "") {
         data = data.filter(item => {
             if (mod === 'words') return item.german.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
             if (mod === 'sentences') return item.german.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
             if (mod === 'trennbare') return (item.prefix+item.verb).toLowerCase().includes(term) || item.definition.toLowerCase().includes(term) || item.georgian.toLowerCase().includes(term);
-if (mod === 'verben_mit_praep') return (item.verb || "").toLowerCase().includes(term) || (item.preposition || "").toLowerCase().includes(term) || (item.translation || "").toLowerCase().includes(term);
-return false;
+            if (mod === 'verben_mit_praep') return (item.verb || "").toLowerCase().includes(term) || (item.preposition || "").toLowerCase().includes(term) || (item.translation || "").toLowerCase().includes(term);
+            return false;
         });
-        // Apply sorting if active
-        if (sortState.column && sortState.direction) {
-            data.sort((a, b) => {
-                let valA = a[sortState.column] || '';
-                let valB = b[sortState.column] || '';
-                if (typeof valA === 'string') valA = valA.toLowerCase();
-                if (typeof valB === 'string') valB = valB.toLowerCase();
-                if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-        return data;
     }
+    
+    // Apply sorting if active
+    if (sortState.column && sortState.direction) {
+        data.sort((a, b) => {
+            let valA = a[sortState.column] || '';
+            let valB = b[sortState.column] || '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+    return data;
+}
 
 function printCurrentModule() {
     const mod = appState.activeModule;
@@ -812,7 +889,7 @@ function printCurrentModule() {
     
     if (mod === 'words') {
         html += `<h1></h1>`;
-        const levels = ["A1","A2","B1"];
+const levels = ["A1","A2","B1","B2"];
         levels.forEach(lvl => {
             const levelItems = data.filter(w => w.level === lvl);
             if(levelItems.length){
@@ -838,7 +915,7 @@ function printCurrentModule() {
         });
 } else if (mod === 'sentences') {
     html += `<h1></h1>`;
-    const levels = ["A1","A2","B1"];
+const levels = ["A1","A2","B1","B2"];
     levels.forEach(lvl => {
         const levelItems = data.filter(s => s.level === lvl);
         if(levelItems.length){
@@ -1051,17 +1128,30 @@ function getBestGermanVoice() {
 }
 
 
+// Update results when module is opened
 function updateResultsOnly() {
     const resultsContainer = document.getElementById('resultsContainer');
     if (!resultsContainer) return;
     const mod = appState.activeModule;
-    const term = appState.searchTerm;
-if (term === "") { 
-    // Don't return - show all data when search is empty
-    const filtered = getFiltered(); // This will get all data since term is empty
-    // Continue to render the table with all data
-}    const filtered = getFiltered();
-    if (filtered.length === 0) { resultsContainer.innerHTML = `<div class="empty-state">შედეგი არ მოიძებნა</div>`; return; }
+    
+    // Check if data exists for this module
+    if (!appState.moduleData[mod] || appState.moduleData[mod].length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="loading-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
+                <div class="spinner" style="width: 40px; height: 40px;"></div>
+                <div style="margin-top: 1rem; color: #64748b; font-weight: 500;">მონაცემები იტვირთება...</div>
+            </div>
+        `;
+        return;
+    }
+    
+    const filtered = getFiltered();
+    
+    if (filtered.length === 0) { 
+        resultsContainer.innerHTML = `<div class="empty-state">შედეგი არ მოიძებნა</div>`; 
+        return; 
+    }
+    
     let tableHtml = '';
     if (mod === 'words') {
         tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr>
@@ -1072,21 +1162,21 @@ if (term === "") {
             <th data-sort="praeteritum">Präteritum (3.P)</th>
             <th data-sort="perfekt">Perfekt (er/sie)</th>
             <th data-sort="hinweis">Hinweis</th>
-         </tr></thead><tbody>`;
+          </thead><tbody>`;
         filtered.forEach(w => {
             tableHtml += `<tr class="word-row" data-type="words" data-german="${escapeHtml(w.german)}"><td><span class="level-badge level-${w.level}">${w.level}+</span></td><td class="german-word">${escapeHtml(w.german)}</td><td><span class="audio-table-icon">${getAudioSVG()}</span></td><td class="georgian-trans">${escapeHtml(w.georgian)}</td><td>${escapeHtml(w.praeteritum || '')}</td><td>${escapeHtml(w.perfekt || '')}</td><td>${escapeHtml(w.hinweis || '')}</td></tr>`;
         });
         tableHtml += `</tbody></table></div>`;
-} else if (mod === 'sentences') {
-    tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
-        <tr>
-            <th data-sort="level">Niveau</th>
-            <th data-sort="chapter">Kapitel</th>
-            <th data-sort="german">Deutsche Sätze</th>
-            <th>Hören</th>
-            <th data-sort="georgian">Georgische Übersetzung</th>
-        </tr>
-    </thead><tbody>`;
+    } else if (mod === 'sentences') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead>
+            <tr>
+                <th data-sort="level">Niveau</th>
+                <th data-sort="chapter">Kapitel</th>
+                <th data-sort="german">Deutsche Sätze</th>
+                <th>Hören</th>
+                <th data-sort="georgian">Georgische Übersetzung</th>
+            </tr>
+        </thead><tbody>`;
         filtered.forEach(s => {
             tableHtml += `<tr class="word-row" data-type="sentences" data-german="${escapeHtml(s.german)}"><td><span class="level-badge level-${s.level}">${s.level}+</span></td><td><span class="kap-badge">${escapeHtml(s.chapter)}</span></td><td class="german-word">${escapeHtml(s.german)}</td><td><span class="audio-table-icon">${getAudioSVG()}</span></td><td class="georgian-trans">${escapeHtml(s.georgian)}</td></tr>`;
         });
@@ -1097,20 +1187,20 @@ if (term === "") {
             tableHtml += `<tr class="word-row" data-type="trennbare" data-index="${index}" data-prefix="${escapeHtml(t.prefix)}" data-verb="${escapeHtml(t.verb)}"><td><strong>${escapeHtml(t.prefix)}</strong></td><td class="german-word">${escapeHtml(t.verb)}</td><td>${escapeHtml(t.definition)}</td><td>${escapeHtml(t.georgian)}</td></tr>`;
         });
         tableHtml += `</tbody></table></div>`;
-} else if (mod === 'verben_mit_praep') {
-    tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="verb">das Verb</th><th data-sort="preposition">Präposition</th><th data-sort="kasus">Kasus</th><th data-sort="translation">Übersetzung</th><th data-sort="example">Beispiel</th><th>Hören</th></tr></thead><tbody>`;
-    filtered.forEach((v, index) => { 
-        tableHtml += `<tr class="word-row" data-type="verben_mit_praep" data-index="${index}" data-verb="${escapeHtml(v.verb)}">`;
-        tableHtml += `<td class="german-word">${escapeHtml(v.verb)}</td>`;
-        tableHtml += `<td>${escapeHtml(v.preposition)}</td>`;
-        tableHtml += `<td>${escapeHtml(v.kasus)}</td>`;
-        tableHtml += `<td>${escapeHtml(v.translation)}</td>`;
-        tableHtml += `<td><em>${escapeHtml(v.example)}</em></td>`;
-        tableHtml += `<td><span class="audio-table-icon">${getAudioSVG()}</span></td>`;
-        tableHtml += `</tr>`;
-    });
-    tableHtml += `</tbody></table></div>`;
-}
+    } else if (mod === 'verben_mit_praep') {
+        tableHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th data-sort="verb">das Verb</th><th data-sort="preposition">Präposition</th><th data-sort="kasus">Kasus</th><th data-sort="translation">Übersetzung</th><th data-sort="example">Beispiel</th><th>Hören</th></tr></thead><tbody>`;
+        filtered.forEach((v, index) => { 
+            tableHtml += `<tr class="word-row" data-type="verben_mit_praep" data-index="${index}" data-verb="${escapeHtml(v.verb)}">`;
+            tableHtml += `<td class="german-word">${escapeHtml(v.verb)}</td>`;
+            tableHtml += `<td>${escapeHtml(v.preposition)}</td>`;
+            tableHtml += `<td>${escapeHtml(v.kasus)}</td>`;
+            tableHtml += `<td>${escapeHtml(v.translation)}</td>`;
+            tableHtml += `<td><em>${escapeHtml(v.example)}</em></td>`;
+            tableHtml += `<td><span class="audio-table-icon">${getAudioSVG()}</span></td>`;
+            tableHtml += `</tr>`;
+        });
+        tableHtml += `</tbody></table></div>`;
+    }
     resultsContainer.innerHTML = tableHtml;
     
     // Attach sorting listeners
@@ -1119,80 +1209,185 @@ if (term === "") {
         th.addEventListener('click', (e) => { e.stopPropagation(); applySorting(sortKey, th); });
     });
     
-document.querySelectorAll('.audio-table-icon').forEach((icon, idx) => {
-    icon.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
-        const row = icon.closest('tr');
-        
-        if (mod === 'words') {
-            const germanText = row.getAttribute('data-german');
-            const found = appState.moduleData.words.find(w => w.german === germanText);
-            if (found) speakFullDetails(found, 'words');
-        }
-        else if (mod === 'sentences') {
-            const germanText = row.getAttribute('data-german');
-            const found = appState.moduleData.sentences.find(s => s.german === germanText);
-            if (found) speakFullDetails(found, 'sentences');
-        }
-        else if (mod === 'trennbare') {
-            const prefix = row.getAttribute('data-prefix');
-            const verb = row.getAttribute('data-verb');
-            const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb);
-            if (found) speakFullDetails(found, 'trennbare');
-        }
-        else if (mod === 'verben_mit_praep') {
-            const index = row.getAttribute('data-index');
-            if (index !== null && appState.moduleData.verben_mit_praep[index]) {
-                speakFullDetails(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+    document.querySelectorAll('.audio-table-icon').forEach((icon, idx) => {
+        icon.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            const row = icon.closest('tr');
+            
+            if (mod === 'words') {
+                const germanText = row.getAttribute('data-german');
+                const found = appState.moduleData.words.find(w => w.german === germanText);
+                if (found) speakFullDetails(found, 'words');
             }
-        }
+            else if (mod === 'sentences') {
+                const germanText = row.getAttribute('data-german');
+                const found = appState.moduleData.sentences.find(s => s.german === germanText);
+                if (found) speakFullDetails(found, 'sentences');
+            }
+            else if (mod === 'trennbare') {
+                const prefix = row.getAttribute('data-prefix');
+                const verb = row.getAttribute('data-verb');
+                const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb);
+                if (found) speakFullDetails(found, 'trennbare');
+            }
+            else if (mod === 'verben_mit_praep') {
+                const index = row.getAttribute('data-index');
+                if (index !== null && appState.moduleData.verben_mit_praep[index]) {
+                    speakFullDetails(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+                }
+            }
+        });
     });
-});
     
-document.querySelectorAll('.word-row').forEach(row => {
-    row.addEventListener('click', (e) => { 
-        if(e.target.closest('.audio-table-icon')) return; 
-        const type = row.getAttribute('data-type'); 
-        if (type === 'words') { 
-            const germanText = row.getAttribute('data-german'); 
-            const found = appState.moduleData.words.find(w => w.german === germanText); 
-            if(found) openModal(found, 'words'); 
-        } else if (type === 'sentences') { 
-            const germanText = row.getAttribute('data-german'); 
-            const found = appState.moduleData.sentences.find(s => s.german === germanText); 
-            if(found) openModal(found, 'sentences'); 
-        } else if (type === 'trennbare') { 
-            const prefix = row.getAttribute('data-prefix');
-            const verb = row.getAttribute('data-verb');
-            const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb); 
-            if(found) openModal(found, 'trennbare'); 
-        } else if (type === 'verben_mit_praep') { 
-            // Use a unique identifier - store the index
-            const index = row.getAttribute('data-index');
-            if (index !== null && appState.moduleData.verben_mit_praep[index]) {
-                openModal(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+    document.querySelectorAll('.word-row').forEach(row => {
+        row.addEventListener('click', (e) => { 
+            if(e.target.closest('.audio-table-icon')) return; 
+            const type = row.getAttribute('data-type'); 
+            if (type === 'words') { 
+                const germanText = row.getAttribute('data-german'); 
+                const found = appState.moduleData.words.find(w => w.german === germanText); 
+                if(found) openModal(found, 'words'); 
+            } else if (type === 'sentences') { 
+                const germanText = row.getAttribute('data-german'); 
+                const found = appState.moduleData.sentences.find(s => s.german === germanText); 
+                if(found) openModal(found, 'sentences'); 
+            } else if (type === 'trennbare') { 
+                const prefix = row.getAttribute('data-prefix');
+                const verb = row.getAttribute('data-verb');
+                const found = appState.moduleData.trennbare.find(t => t.prefix === prefix && t.verb === verb); 
+                if(found) openModal(found, 'trennbare'); 
+            } else if (type === 'verben_mit_praep') { 
+                const index = row.getAttribute('data-index');
+                if (index !== null && appState.moduleData.verben_mit_praep[index]) {
+                    openModal(appState.moduleData.verben_mit_praep[index], 'verben_mit_praep');
+                }
             }
-        }
+        });
     });
-});
 }
 
-    function renderModuleView() {
-        const mod = appState.activeModule;
-        const titles = { words: 'Wörter', sentences: 'Sätze', trennbare: 'Trennbare Verben', verben_mit_praep: 'Verben mit Präp.' };
-        const container = document.createElement('div'); container.className = 'glass-card'; container.style.padding = '1.2rem 1rem';
-        container.innerHTML = `<div class="header-flex"><div class="title-row"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg><h2 style="font-weight:800;">${titles[mod]}</h2></div><div style="display:flex; gap:10px;"><button class="print-btn" id="printListBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V3h12v6M6 21h12v-6H6zM21 9H3v8h4V9h14v8h4V9z"/></svg> ბეჭდვა</button><button class="signout-btn" id="signoutBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/></svg> გასვლა</button><button class="back-btn" id="backBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> ყველა მოდული</button></div></div><div class="search-area"><input type="text" id="searchInput" class="search-input" placeholder="ძებნა..."></div><div class="results-container" id="resultsContainer"><div class="empty-state">ჩაწერეთ სიტყვა</div></div>`;
-        return container;
+
+// Add this function to show loading in module view
+function showModuleLoading() {
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = `
+            <div class="loading-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
+                <div class="spinner" style="width: 40px; height: 40px;"></div>
+                <div style="margin-top: 1rem; color: #64748b; font-weight: 500;">იტვირთება მონაცემები...</div>
+            </div>
+        `;
+    }
+}
+
+// Update the renderModuleView function to show loading immediately
+function renderModuleView() {
+    const mod = appState.activeModule;
+    const titles = { words: 'Wörter', sentences: 'Sätze', trennbare: 'Trennbare Verben', verben_mit_praep: 'Verben mit Präp.' };
+    const container = document.createElement('div'); 
+    container.className = 'glass-card'; 
+    container.style.padding = '1.2rem 1rem';
+    container.innerHTML = `<div class="header-flex">
+        <div class="title-row">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5">
+                <path d="M4 7h16M4 12h16M4 17h10"/>
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+            </svg>
+            <h2 style="font-weight:800;">${titles[mod]}</h2>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="print-btn" id="printListBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M6 9V3h12v6M6 21h12v-6H6zM21 9H3v8h4V9h14v8h4V9z"/>
+                </svg> ბეჭდვა
+            </button>
+            <button class="refresh-module-btn" id="refreshModuleBtn" style="background: #059669; width: auto;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg> განახლება
+            </button>
+            <button class="signout-btn" id="signoutBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4-4-4M12 12h8"/>
+                </svg> გასვლა
+            </button>
+            <button class="back-btn" id="backBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg> ყველა მოდული
+            </button>
+        </div>
+    </div>
+    <div class="search-area">
+        <input type="text" id="searchInput" class="search-input" placeholder="ძებნა...">
+    </div>
+    <div class="results-container" id="resultsContainer">
+        <div class="loading-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
+            <div class="spinner" style="width: 40px; height: 40px;"></div>
+            <div style="margin-top: 1rem; color: #64748b; font-weight: 500;">იტვირთება მონაცემები...</div>
+        </div>
+    </div>`;
+    return container;
+}
+
+// Update attachModuleEvents to handle refresh
+function attachModuleEvents(container) {
+    const searchInput = container.querySelector('#searchInput');
+    if (searchInput) { 
+        searchInput.value = appState.searchTerm; 
+        searchInput.addEventListener('input', (e) => { 
+            appState.searchTerm = e.target.value; 
+            sortState.column = null; 
+            sortState.direction = null; 
+            updateResultsOnly(); 
+        }); 
     }
     
-    function attachModuleEvents(container) {
-        const searchInput = container.querySelector('#searchInput');
-        if (searchInput) { searchInput.value = appState.searchTerm; searchInput.addEventListener('input', (e) => { appState.searchTerm = e.target.value; sortState.column = null; sortState.direction = null; updateResultsOnly(); }); }
-        container.querySelector('#backBtn')?.addEventListener('click', () => { appState.activeModule = null; appState.searchTerm = ""; sortState = { column: null, direction: null }; renderApp(); });
-        container.querySelector('#signoutBtn')?.addEventListener('click', () => { appState.authenticated = false; appState.activeModule = null; appState.searchTerm = ""; renderApp(); });
-        container.querySelector('#printListBtn')?.addEventListener('click', () => printCurrentModule());
-        if (appState.searchTerm !== "") updateResultsOnly(); else updateResultsOnly();
-    }
+    container.querySelector('#backBtn')?.addEventListener('click', () => { 
+        appState.activeModule = null; 
+        appState.searchTerm = ""; 
+        sortState = { column: null, direction: null }; 
+        renderApp(); 
+    });
+    
+    container.querySelector('#signoutBtn')?.addEventListener('click', () => { 
+        appState.authenticated = false; 
+        appState.activeModule = null; 
+        appState.searchTerm = ""; 
+        renderApp(); 
+    });
+    
+    container.querySelector('#printListBtn')?.addEventListener('click', () => printCurrentModule());
+    
+    // Add refresh button handler for current module
+    container.querySelector('#refreshModuleBtn')?.addEventListener('click', async () => {
+        setLoading(true);
+        showModuleLoading();
+        await loadAllData();
+        updateResultsOnly();
+        setLoading(false);
+        showToast("მონაცემები განახლდა!");
+    });
+    
+    // Small delay to ensure data is loaded before showing results
+    setTimeout(() => {
+        if (appState.moduleData[appState.activeModule]?.length > 0) {
+            updateResultsOnly();
+        } else {
+            // If data is still loading, show loading state
+            const resultsContainer = document.getElementById('resultsContainer');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="loading-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
+                        <div class="spinner" style="width: 40px; height: 40px;"></div>
+                        <div style="margin-top: 1rem; color: #64748b; font-weight: 500;">იტვირთება მონაცემები...</div>
+                    </div>
+                `;
+            }
+        }
+    }, 100);
+}
 
 function renderModulesDashboard() {
     const container = document.createElement('div'); 
@@ -1308,28 +1503,49 @@ async function showVoiceSelector() {
 }
 
 function attachDashboardEvents(container) {
-    container.querySelector('#signoutDashboard')?.addEventListener('click', () => { appState.authenticated = false; renderApp(); });
+    container.querySelector('#signoutDashboard')?.addEventListener('click', () => { 
+        appState.authenticated = false; 
+        renderApp(); 
+    });
     
     container.querySelector('#refreshTitle')?.addEventListener('click', async () => { 
         setLoading(true);
+        showToast("მონაცემები განახლდება...");
         await loadAllData();
         renderApp();
+        setLoading(false);
+        showToast("მონაცემები წარმატებით განახლდა!");
     });
     
     container.querySelector('#voiceSelectorBtn')?.addEventListener('click', showVoiceSelector);
     
     container.querySelectorAll('.module-card').forEach(card => { 
-        card.addEventListener('click', () => { 
+        card.addEventListener('click', async () => { 
             const mod = card.getAttribute('data-module'); 
             if (mod) { 
+                // Show loading indicator on the card that was clicked
+                const originalContent = card.innerHTML;
+                card.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <div class="spinner" style="width: 30px; height: 30px;"></div>
+                    <div style="font-size: 0.8rem;">იტვირთება...</div>
+                </div>`;
+                card.style.pointerEvents = 'none';
+                
                 appState.activeModule = mod; 
                 appState.searchTerm = ""; 
                 sortState = { column: null, direction: null }; 
-                renderApp(); 
+                
+                // Small delay to show loading animation
+                await new Promise(resolve => setTimeout(resolve, 100));
+                renderApp();
             } 
         }); 
     });
 }
+
+// Add a timestamp to track when data was last loaded
+let lastDataLoadTime = null;
+
 
     function renderLogin() {
         const container = document.createElement('div'); container.className = 'glass-card login-panel';
@@ -1353,6 +1569,28 @@ function attachDashboardEvents(container) {
         else { const moduleView = renderModuleView(); root.appendChild(moduleView); attachModuleEvents(moduleView); }
     }
     renderApp();
+    
+    // Add loading animation styles
+    const additionalStyles = `
+        .loading-state {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .refresh-module-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+        .module-card.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = additionalStyles;
+    document.head.appendChild(styleSheet);
 </script>
 </body>
 </html>
