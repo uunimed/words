@@ -451,6 +451,42 @@ const additionalStyles = `
     }
 `;
 
+.umlaut-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    margin: 10px 0 10px 0;
+    padding: 6px 8px;
+    background: #f8fafc;
+    border-radius: 40px;
+    flex-wrap: wrap;
+}
+.umlaut-btn {
+    background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+    color: #1e293b;
+    border: 2px solid #cbd5e1;
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    width: auto;
+    min-width: 45px;
+    margin: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'JetBrains Mono', monospace;
+}
+.umlaut-btn:hover {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+}
+.umlaut-btn:active {
+    transform: translateY(0);
+}
+
     </style>
 </head>
 <body>
@@ -1280,7 +1316,6 @@ function showModuleLoading() {
     }
 }
 
-// Update the renderModuleView function to show loading immediately
 function renderModuleView() {
     const mod = appState.activeModule;
     const titles = { words: 'Wörter', sentences: 'Sätze', trennbare: 'Trennbare Verben', verben_mit_praep: 'Verben mit Präp.' };
@@ -1322,6 +1357,12 @@ function renderModuleView() {
     <div class="search-area">
         <input type="text" id="searchInput" class="search-input" placeholder="ძებნა...">
     </div>
+<div class="umlaut-bar">
+    <button class="umlaut-btn" data-umlaut="ä">ä</button>
+    <button class="umlaut-btn" data-umlaut="ö">ö</button>
+    <button class="umlaut-btn" data-umlaut="ü">ü</button>
+    <button class="umlaut-btn" data-umlaut="ß">ß</button>
+</div>
     <div class="results-container" id="resultsContainer">
         <div class="loading-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
             <div class="spinner" style="width: 40px; height: 40px;"></div>
@@ -1331,7 +1372,6 @@ function renderModuleView() {
     return container;
 }
 
-// Update attachModuleEvents to handle refresh
 function attachModuleEvents(container) {
     const searchInput = container.querySelector('#searchInput');
     if (searchInput) { 
@@ -1343,6 +1383,28 @@ function attachModuleEvents(container) {
             updateResultsOnly(); 
         }); 
     }
+    
+    // Add umlaut button functionality
+    const umlautButtons = container.querySelectorAll('.umlaut-btn');
+    umlautButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const umlaut = btn.getAttribute('data-umlaut');
+            if (searchInput) {
+                const currentValue = searchInput.value;
+                const cursorPos = searchInput.selectionStart;
+                const newValue = currentValue.slice(0, cursorPos) + umlaut + currentValue.slice(cursorPos);
+                searchInput.value = newValue;
+                appState.searchTerm = newValue;
+                // Trigger the input event to update search results
+                const inputEvent = new Event('input', { bubbles: true });
+                searchInput.dispatchEvent(inputEvent);
+                // Set cursor position after the inserted umlaut
+                const newCursorPos = cursorPos + umlaut.length;
+                searchInput.setSelectionRange(newCursorPos, newCursorPos);
+                searchInput.focus();
+            }
+        });
+    });
     
     container.querySelector('#backBtn')?.addEventListener('click', () => { 
         appState.activeModule = null; 
