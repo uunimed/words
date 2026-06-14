@@ -433,7 +433,6 @@
 
 .level-B2 { background: #ddd6fe; color: #4c1d95; }
 
-const additionalStyles = `
     .loading-state {
         animation: pulse 1.5s ease-in-out infinite;
     }
@@ -449,7 +448,6 @@ const additionalStyles = `
         pointer-events: none;
         opacity: 0.7;
     }
-`;
 
 .umlaut-bar {
     display: flex;
@@ -1562,6 +1560,396 @@ async function showVoiceSelector() {
     modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
 }
 
+// TTS upgrade: speak German and Georgian with separate, better-matched voices.
+let userPreferredGeorgianVoice = null;
+let ttsPreferencesLoaded = false;
+
+const GEORGIAN_PHONETIC_FALLBACK = {
+    'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
+    'თ': 't', 'ი': 'i', 'კ': "k'", 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o',
+    'პ': "p'", 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': "t'", 'უ': 'u', 'ფ': 'p',
+    'ქ': 'k', 'ღ': 'gh', 'ყ': 'q', 'შ': 'sh', 'ჩ': 'ch', 'ც': 'ts',
+    'ძ': 'dz', 'წ': "ts'", 'ჭ': "ch'", 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h'
+};
+
+function supportsSpeechSynthesis() {
+    return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
+function normalizeVoiceText(value) {
+    return String(value || '').toLowerCase();
+}
+
+function isGermanVoice(voice) {
+    return normalizeVoiceText(voice.lang).startsWith('de');
+}
+
+function isNativeGeorgianVoice(voice) {
+    const haystack = `${voice?.name || ''} ${voice?.lang || ''}`.toLowerCase();
+    return normalizeVoiceText(voice?.lang).startsWith('ka') ||
+        haystack.includes('georgian') ||
+        haystack.includes('georgisch') ||
+        haystack.includes('kartuli') ||
+        haystack.includes('ქართული');
+}
+
+function scoreGermanVoice(voice) {
+    const lang = normalizeVoiceText(voice.lang);
+    const name = normalizeVoiceText(voice.name);
+    let score = 0;
+
+    if (lang === 'de-de') score += 100;
+    else if (lang.startsWith('de')) score += 80;
+    else score -= 100;
+
+    if (/natural|neural|online|premium/.test(name)) score += 35;
+    if (/google|microsoft/.test(name)) score += 16;
+    if (/conrad|stefan|klaus|hans|jonas|markus|marcus|matthias|daniel|killian/.test(name)) score += 10;
+    if (/katja|amala|seraphina|hedda|anna/.test(name)) score += 6;
+    if (/compact|legacy/.test(name)) score -= 12;
+    if (voice.localService) score += 2;
+
+    return score;
+}
+
+function scoreGeorgianVoice(voice) {
+    const lang = normalizeVoiceText(voice.lang);
+    const name = normalizeVoiceText(voice.name);
+    let score = 0;
+
+    if (lang === 'ka-ge') score += 120;
+    else if (lang.startsWith('ka')) score += 100;
+    if (/georgian|georgisch|kartuli|ქართული/.test(name)) score += 60;
+    if (/natural|neural|online|premium/.test(name)) score += 25;
+    if (/google|microsoft/.test(name)) score += 10;
+
+    if (!isNativeGeorgianVoice(voice)) {
+        if (lang.startsWith('tr')) score += 16;
+        else if (lang.startsWith('ru')) score += 12;
+        else if (lang.startsWith('en')) score += 10;
+        else if (lang.startsWith('de')) score += 4;
+    }
+
+    return score;
+}
+
+function sortVoicesByScore(voices, scorer) {
+    return [...voices].sort((a, b) => scorer(b) - scorer(a) || a.name.localeCompare(b.name));
+}
+
+function getBrowserVoices() {
+    return new Promise((resolve) => {
+        if (!supportsSpeechSynthesis()) {
+            resolve([]);
+            return;
+        }
+
+        const existingVoices = window.speechSynthesis.getVoices();
+        if (existingVoices.length) {
+            resolve(existingVoices);
+            return;
+        }
+
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve(window.speechSynthesis.getVoices());
+        };
+
+        const timer = setTimeout(finish, 800);
+        const onVoicesChanged = () => {
+            clearTimeout(timer);
+            finish();
+        };
+
+        if (window.speechSynthesis.addEventListener) {
+            window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged, { once: true });
+        } else {
+            window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+        }
+    });
+}
+
+async function getAvailableGermanVoices() {
+    const voices = await getBrowserVoices();
+    const germanVoices = voices.filter(isGermanVoice);
+    return sortVoicesByScore(germanVoices.length ? germanVoices : voices, scoreGermanVoice);
+}
+
+async function getAvailableGeorgianVoices(includeFallback = true) {
+    const voices = await getBrowserVoices();
+    const georgianVoices = voices.filter(isNativeGeorgianVoice);
+    if (georgianVoices.length || !includeFallback) {
+        return sortVoicesByScore(georgianVoices, scoreGeorgianVoice);
+    }
+    return sortVoicesByScore(voices, scoreGeorgianVoice);
+}
+
+async function getBestGermanVoice() {
+    const voices = await getAvailableGermanVoices();
+    return voices[0] || null;
+}
+
+async function getBestGeorgianVoice() {
+    const voices = await getAvailableGeorgianVoices(true);
+    return voices[0] || null;
+}
+
+function normalizeGermanForSpeech(text) {
+    return String(text || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.!?;:])/g, '$1')
+        .trim();
+}
+
+function normalizeGeorgianForSpeech(text) {
+    return String(text || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.!?;:])/g, '$1')
+        .trim();
+}
+
+function georgianToPhoneticFallback(text) {
+    return normalizeGeorgianForSpeech(text)
+        .split('')
+        .map((char) => GEORGIAN_PHONETIC_FALLBACK[char] ?? char)
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+async function ensureVoicePreferencesLoaded() {
+    if (ttsPreferencesLoaded) return;
+    ttsPreferencesLoaded = true;
+
+    const savedGermanVoice = localStorage.getItem('preferredVoiceName') || localStorage.getItem('preferredVoice');
+    if (savedGermanVoice) {
+        const germanVoices = await getAvailableGermanVoices();
+        userPreferredVoice = germanVoices.find(v => v.name === savedGermanVoice) || null;
+    }
+
+    const savedGeorgianVoice = localStorage.getItem('preferredGeorgianVoiceName');
+    if (savedGeorgianVoice) {
+        const georgianVoices = await getAvailableGeorgianVoices(true);
+        userPreferredGeorgianVoice = georgianVoices.find(v => v.name === savedGeorgianVoice) || null;
+    }
+}
+
+async function loadVoicePreference() {
+    ttsPreferencesLoaded = false;
+    await ensureVoicePreferencesLoaded();
+}
+
+async function setVoicePreference(voiceName) {
+    await ensureVoicePreferencesLoaded();
+    const voices = await getAvailableGermanVoices();
+    userPreferredVoice = voices.find(v => v.name === voiceName) || null;
+
+    if (userPreferredVoice) {
+        localStorage.setItem('preferredVoiceName', userPreferredVoice.name);
+        localStorage.setItem('preferredVoiceLang', userPreferredVoice.lang || '');
+        localStorage.removeItem('preferredVoice');
+        showToast(`გერმანული ხმა შეიცვალა: ${userPreferredVoice.name}`);
+    }
+}
+
+async function setGeorgianVoicePreference(voiceName) {
+    await ensureVoicePreferencesLoaded();
+    const voices = await getAvailableGeorgianVoices(true);
+    userPreferredGeorgianVoice = voices.find(v => v.name === voiceName) || null;
+
+    if (userPreferredGeorgianVoice) {
+        localStorage.setItem('preferredGeorgianVoiceName', userPreferredGeorgianVoice.name);
+        localStorage.setItem('preferredGeorgianVoiceLang', userPreferredGeorgianVoice.lang || '');
+        showToast(`ქართული ხმა შეიცვალა: ${userPreferredGeorgianVoice.name}`);
+    }
+}
+
+function buildUtterance(text, language, voice) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = voice?.lang || language;
+    utterance.voice = voice || null;
+    utterance.volume = 1;
+
+    if (language === 'ka-GE') {
+        utterance.rate = isNativeGeorgianVoice(voice) ? 0.82 : 0.76;
+        utterance.pitch = 1.02;
+    } else {
+        utterance.rate = 0.86;
+        utterance.pitch = 0.96;
+    }
+
+    return utterance;
+}
+
+function speakUtterance(utterance) {
+    return new Promise((resolve) => {
+        utterance.onend = resolve;
+        utterance.onerror = resolve;
+        window.speechSynthesis.speak(utterance);
+    });
+}
+
+async function speakParts(parts) {
+    if (!supportsSpeechSynthesis()) {
+        showToast('ამ ბრაუზერში ხმოვანი წაკითხვა არ არის მხარდაჭერილი');
+        return;
+    }
+
+    await ensureVoicePreferencesLoaded();
+    window.speechSynthesis.cancel();
+
+    const germanVoice = userPreferredVoice || await getBestGermanVoice();
+    const georgianVoice = userPreferredGeorgianVoice || await getBestGeorgianVoice();
+    const georgianIsNative = georgianVoice && isNativeGeorgianVoice(georgianVoice);
+
+    for (const part of parts.filter(p => p?.text && String(p.text).trim())) {
+        const isGeorgian = part.lang === 'ka-GE';
+        const voice = isGeorgian ? georgianVoice : germanVoice;
+        const spokenText = isGeorgian
+            ? (georgianIsNative ? normalizeGeorgianForSpeech(part.text) : georgianToPhoneticFallback(part.text))
+            : normalizeGermanForSpeech(part.text);
+        const utterance = buildUtterance(spokenText, isGeorgian ? 'ka-GE' : 'de-DE', voice);
+
+        await speakUtterance(utterance);
+        if (part.pause !== 0) {
+            await new Promise(resolve => setTimeout(resolve, part.pause || 120));
+        }
+    }
+}
+
+async function speakText(text, lang = 'de-DE') {
+    const language = lang && lang.toLowerCase().startsWith('ka') ? 'ka-GE' : 'de-DE';
+    await speakParts([{ text, lang: language }]);
+}
+
+function germanPart(text, pause = 100) {
+    return { text, lang: 'de-DE', pause };
+}
+
+function georgianPart(text, pause = 130) {
+    return { text, lang: 'ka-GE', pause };
+}
+
+async function speakFullDetails(item, moduleType) {
+    if (!item) return;
+
+    const parts = [];
+    switch(moduleType) {
+        case 'words':
+            parts.push(germanPart(item.german));
+            parts.push(georgianPart(`ქართული მნიშვნელობა: ${item.georgian || 'არ არის'}`));
+            if (item.praeteritum) parts.push(germanPart(`Präteritum des Verbes: ${item.praeteritum}`));
+            if (item.perfekt) parts.push(germanPart(`Perfekt des Verbes: ${item.perfekt}`));
+            if (item.hinweis) parts.push(germanPart(`Hinweis: ${item.hinweis}`));
+            break;
+
+        case 'sentences':
+            parts.push(germanPart(item.german));
+            parts.push(georgianPart(`ქართული მნიშვნელობა: ${item.georgian || 'არ არის'}`));
+            break;
+
+        case 'trennbare':
+            parts.push(germanPart(`${item.prefix || ''} ${item.verb || ''}`));
+            parts.push(germanPart(`Hauptdefinition: ${item.definition || ''}`));
+            parts.push(georgianPart(`ქართული თარგმანი: ${item.georgian || 'არ არის'}`));
+            parts.push(germanPart(`Vollständiges Wort: ${(item.prefix || '')}${item.verb || ''}`));
+            break;
+
+        case 'verben_mit_praep':
+            parts.push(germanPart(`${item.verb || ''}, Präposition ${item.preposition || ''}. Kasus: ${item.kasus || ''}`));
+            if (item.translation) parts.push(georgianPart(`თარგმანი: ${item.translation}`));
+            if (item.example) parts.push(germanPart(`Beispiel: ${item.example}`));
+            break;
+
+        default:
+            parts.push(germanPart(item.german || item.verb || ''));
+    }
+
+    await speakParts(parts);
+}
+
+async function speakWithPauses(text, chunkDelay = 220) {
+    const sentences = String(text || '').split(/(?<=[.!?])\s+/).filter(Boolean);
+    for (const sentence of sentences) {
+        await speakText(sentence);
+        await new Promise(resolve => setTimeout(resolve, chunkDelay));
+    }
+}
+
+function escapeAttribute(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[m]));
+}
+
+function renderVoiceButtons(voices, activeVoice, kind) {
+    if (!voices.length) {
+        return '<p style="color:#64748b; margin:8px 0;">ხმები ვერ მოიძებნა</p>';
+    }
+
+    return voices.map(v => {
+        const isActive = activeVoice?.name === v.name;
+        const label = `${escapeHtml(v.name)} (${escapeHtml(v.lang || 'default')})`;
+        return `<button class="voice-option" data-kind="${kind}" data-voice="${escapeAttribute(v.name)}" style="margin: 5px; padding: 8px 16px; width: auto; background: ${isActive ? '#4f46e5' : '#64748b'}">${label}</button>`;
+    }).join('');
+}
+
+async function showVoiceSelector() {
+    await ensureVoicePreferencesLoaded();
+    const germanVoices = await getAvailableGermanVoices();
+    const nativeGeorgianVoices = await getAvailableGeorgianVoices(false);
+    const georgianVoices = nativeGeorgianVoices.length ? nativeGeorgianVoices : await getAvailableGeorgianVoices(true);
+    const georgianFallbackNote = nativeGeorgianVoices.length
+        ? ''
+        : '<p style="color:#64748b; margin:6px 0 12px;">ქართული native ხმა ვერ მოიძებნა; fallback იყენებს ქართულ-ფონეტიკურ გადაყვანას.</p>';
+
+    const modalHtml = `<div class="modal-overlay"><div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3>ხმების არჩევა</h3>
+            <button class="close-modal" style="width: auto;">დახურვა</button>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <h4>გერმანული ხმა</h4>
+            <p style="color:#64748b; margin:6px 0 12px;">პირველ რიგში არჩეულია ბუნებრივი/Neural გერმანული ხმები.</p>
+            ${renderVoiceButtons(germanVoices, userPreferredVoice || germanVoices[0], 'de')}
+        </div>
+        <div>
+            <h4>ქართული ხმა</h4>
+            ${georgianFallbackNote}
+            ${renderVoiceButtons(georgianVoices, userPreferredGeorgianVoice || georgianVoices[0], 'ka')}
+        </div>
+    </div></div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.querySelector('.modal-overlay');
+
+    modal.querySelectorAll('.voice-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const voiceName = btn.getAttribute('data-voice');
+            const kind = btn.getAttribute('data-kind');
+
+            if (kind === 'ka') {
+                await setGeorgianVoicePreference(voiceName);
+                modal.remove();
+                await speakText('გამარჯობა, ეს არის ქართული ხმის ტესტი', 'ka-GE');
+            } else {
+                await setVoicePreference(voiceName);
+                modal.remove();
+                await speakText('Hallo, das ist eine natürlichere deutsche Stimme', 'de-DE');
+            }
+        });
+    });
+
+    modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
+}
+
 function attachDashboardEvents(container) {
     container.querySelector('#signoutDashboard')?.addEventListener('click', () => { 
         appState.authenticated = false; 
@@ -1629,11 +2017,6 @@ let lastDataLoadTime = null;
         else { const moduleView = renderModuleView(); root.appendChild(moduleView); attachModuleEvents(moduleView); }
     }
     renderApp();
-    
-
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = additionalStyles;
-    document.head.appendChild(styleSheet);
 </script>
 </body>
 </html>
