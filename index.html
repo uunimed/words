@@ -559,16 +559,6 @@ document.body.appendChild(div);
         return values;
     }
 
-async function renderApp() {
-    setLoading(true);
-    try {
-        const root = document.getElementById('app'); 
-        root.innerHTML = '';
-        // rest of existing renderApp code...
-    } finally {
-        setLoading(false);
-    }
-}
 
     function cleanGermanWord(word) {
         if (!word) return "";
@@ -801,31 +791,39 @@ function processSentencesWithChapters(rawSentences) {
     let items = [];
     let currentLevel = "A1";
     let currentChapter = "Allgemein";
+    
     for (let s of rawSentences) {
-        let rawGerman = s["Deutsche Sätze"] || "";
+        // უფრო მოქნილი ძებნა (თუ ზუსტი სახელი ვერ იპოვა, იღებს პირველ სვეტს)
+        let rawGerman = s["Deutsche Sätze"] || s["Deutscher Satz"] || Object.values(s)[0] || "";
         let cleanedGerman = cleanGermanWord(rawGerman);
         let lower = cleanedGerman.toLowerCase();
+        
         if (lower.includes("niveau a1+")) { currentLevel = "A1"; continue; }
         if (lower.includes("niveau a2+")) { currentLevel = "A2"; continue; }
         if (lower.includes("niveau b1+")) { currentLevel = "B1"; continue; }
-        if (lower.includes("niveau b2+")) { currentLevel = "B2"; continue; }  // ADD THIS LINE
-// Look for "Kap" or "KAP" followed by space, dot, or number - NOT "kap" inside words like "kaputt"
-if (lower.match(/^(kap\.?\s*|niveau\s*kap\.?)/i) || lower.match(/\s(kap\.?\s*[ivxlcdm0-9]+)/i)) {
-    let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
-    if (chapMatch) currentChapter = `KAP. ${chapMatch[1]}`;
-    else currentChapter = cleanedGerman;
-    continue;
-}
-            if (cleanedGerman === "") continue;
-            items.push({
-                german: cleanedGerman,
-                georgian: s["Georgische Übersetzung"] || "",
-                chapter: currentChapter,
-                level: currentLevel
-            });
+        if (lower.includes("niveau b2+")) { currentLevel = "B2"; continue; } 
+
+        if (lower.match(/^(kap\.?\s*|niveau\s*kap\.?)/i) || lower.match(/\s(kap\.?\s*[ivxlcdm0-9]+)/i)) {
+            let chapMatch = cleanedGerman.match(/kap\.?\s*([IVXLCDM0-9]+)/i);
+            if (chapMatch) currentChapter = `KAP. ${chapMatch[1]}`;
+            else currentChapter = cleanedGerman;
+            continue;
         }
-        return items;
+        
+        if (cleanedGerman === "") continue;
+        
+        // თარგმანისთვის ვიყენებთ იგივე ლოგიკას (იღებს მეორე სვეტს)
+        let georgianTranslation = s["Georgische Übersetzung"] || s["Übersetzung"] || Object.values(s)[1] || "";
+        
+        items.push({
+            german: cleanedGerman,
+            georgian: georgianTranslation,
+            chapter: currentChapter,
+            level: currentLevel
+        });
     }
+    return items;
+}
 
 // Update loadAllData to record timestamp
 async function loadAllData(forceRefresh = false) {
@@ -1632,24 +1630,7 @@ let lastDataLoadTime = null;
     }
     renderApp();
     
-    // Add loading animation styles
-    const additionalStyles = `
-        .loading-state {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        .refresh-module-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-        }
-        .module-card.loading {
-            pointer-events: none;
-            opacity: 0.7;
-        }
-    `;
+
     const styleSheet = document.createElement("style");
     styleSheet.textContent = additionalStyles;
     document.head.appendChild(styleSheet);
